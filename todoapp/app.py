@@ -63,3 +63,26 @@ def login():
     return render_template('login.html')
 
 
+@app.route("/dashboard" , methods=['POST','GET'])
+def dashboard():
+    if 'email' not in session:
+        return redirect('/login')
+
+    user = User.query.filter_by(email=session['email']).first()
+
+    # Add new task
+    if request.method == 'POST':
+        title = request.form['title']
+        new_task = Task(title=title, user_id=user.id)
+        db.session.add(new_task)
+        db.session.commit()
+        flash(f'Task Added Successfully', 'success')
+        return redirect('/dashboard')
+
+    # Get tasks and check if an edit is requested
+    tasks = Task.query.filter_by(user_id=user.id).all()
+    edit_id = request.args.get('edit', type=int)
+
+    return render_template('dashboard.html', name=user.name, tasks=tasks, edit_id=edit_id)
+
+
