@@ -1,235 +1,277 @@
-let notesContainer = document.getElementById("notes-container");
-let documentsList = document.querySelector(".documents-list");
-let pdfMessage = document.getElementById("pdfMessage");
+document.addEventListener('DOMContentLoaded', () => {
+  const todoInput     = document.getElementById('todo-input');
+  const addTaskBtn    = document.getElementById('add-task-btn');
+  const printBtn      = document.getElementById('print-btn');
+  const todoList      = document.getElementById('todo-list');
+  const taskCountEl   = document.getElementById('task-count');
+  const emptyState    = document.getElementById('empty-state');
+  const saveDocBtn   = document.getElementById('save-doc-btn');
+  const homeNav      = document.getElementById('home-nav');
+  const docsNav      = document.getElementById('docs-nav');
+  const homePage     = document.getElementById('home-page');
+  const docsPage     = document.getElementById('documents-page');
+  const documentsList = document.getElementById('documents-list');
+  const progressFill = document.getElementById('progress-fill');
+  const progressPercent =document.getElementById('progress-percent');
+  const themeToggle = document.getElementById('theme-toggle');
 
-let currentTheme = "theme1"; // Default theme
 
-// Task types with updated labels, values, and colors
-const taskTypes = [
-  { label: "Select Type", value: "", color: "white" },
-  { label: "Work", value: "Work", color: "#FFDE59" }, // Bright Yellow
-  { label: "Personal", value: "Personal", color: "#FFC0CB" }, // Soft Pastel Pink
-  { label: "Professional", value: "Urgent", color: "#B0BEC5" }, // Cool Gray
-  { label: "Fitness", value: "Fitness", color: "#B1EE99" }, // Vibrant Green
-  { label: "Miscellaneous", value: "Miscellaneous", color: "#CAB9F5" }, // Vibrant Green
-];
 
-function Add() {
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    if (task.value == "") {
-        alert("Please enter a task");
-    } else {
-        let newelement = document.createElement("li");
-        newelement.innerHTML = newtask.value + '<i class="fa-solid fa-trash"></i>' + '<a>&#10003</a>';
-        container.appendChild(newelement);
-        task.value = "";
-        newelement.querySelector("i").addEventListener("click", remove);
-        function remove() {
-            newelement.remove();
-        }
-        newelement.querySelector("a").addEventListener("click", strike);
-        function strike() {
-           if(newelement.style.textDecoration === "line-through")
-           {
-            newelement.style.textDecoration="none";
-           }
-           else{
-            newelement.style.textDecoration="line-through";
-           }
-        }
+  // ── Init ──────────────────────────────────────────────
+  tasks.forEach(task => renderTask(task));
+  updateMeta();
 
-  const notes = document.querySelectorAll(".notes");
+  // ── Add task ──────────────────────────────────────────
+  addTaskBtn.addEventListener('click', addTask);
+  todoInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
 
-  if (notes.length > 0) {
-    const lastNote = notes[notes.length - 1];
-    const taskText = lastNote.querySelector("span");
-
-    if (taskText && (taskText.innerText.trim() === "Click here to add a task..." || taskText.innerText.trim() === "")) {
-      alert("Please add a task to the previous note before creating a new one!");
+  function addTask() {
+    const text = todoInput.value.trim();
+    if (!text) {
+      todoInput.style.borderColor = 'rgba(255,77,109,0.6)';
+      setTimeout(() => todoInput.style.borderColor = '', 600);
       return;
     }
+    const newTask = { id: Date.now(), text, completed: false };
+    tasks.push(newTask);
+    renderTask(newTask);
+    saveTasks();
+    updateMeta();
+    todoInput.value = '';
+    todoInput.focus();
   }
 
-  // Create a note container
-  const note = document.createElement("div");
-  note.classList.add("notes");
-  note.style.backgroundColor = "white";
+  // ── Render ────────────────────────────────────────────
+  function renderTask(task) {
+    const li = document.createElement('li');
+    li.setAttribute('data-id', task.id);
+    if (task.completed) li.classList.add('completed');
 
-  const noteWrapper = document.createElement("div");
-  noteWrapper.style.display = "flex";
-  noteWrapper.style.alignItems = "center";
-  noteWrapper.style.justifyContent = "space-between";
-  noteWrapper.style.width = "100%";
-
-  const taskText = document.createElement("span");
-  taskText.innerText = "Click here to add a task...";
-  taskText.contentEditable = true;
-  taskText.style.flex = "1";
-  taskText.style.marginRight = "10px";
-
-  // Dropdown menu for task type
-  const dropdown = document.createElement("select");
-  dropdown.style.marginLeft = "10px";
-
-  // Populate dropdown with task types
-  taskTypes.forEach((taskType) => {
-    const option = document.createElement("option");
-    option.value = taskType.value;
-    option.innerText = taskType.label;
-    dropdown.appendChild(option);
-  });
-
-  // Update task background color based on dropdown selection
-  dropdown.addEventListener("change", () => {
-    const selectedType = taskTypes.find((type) => type.value === dropdown.value);
-    if (selectedType) {
-      note.style.backgroundColor = selectedType.color;
-    }
-  });
-
-  const tickIcon = document.createElement("a");
-  tickIcon.innerHTML = "&#10003"; // Checkmark symbol
-  tickIcon.style.cursor = "pointer";
-  tickIcon.style.color = "black";
-  tickIcon.style.fontSize = "20px";
-  tickIcon.style.marginLeft = "10px";
-
-  noteWrapper.appendChild(taskText);
-  noteWrapper.appendChild(dropdown);
-  noteWrapper.appendChild(tickIcon);
-
-  note.appendChild(noteWrapper);
-  notesContainer.appendChild(note);
-
-  // Event listeners for task text
-  taskText.addEventListener("focus", () => {
-    if (taskText.innerText.trim() === "Click here to add a task...") {
-      taskText.innerText = "";
-    }
-  });
-
-  taskText.addEventListener("blur", () => {
-    if (taskText.innerText.trim() === "") {
-      taskText.innerText = "Click here to add a task...";
-
-    }
-  });
-
-  tickIcon.addEventListener("click", (event) => {
-    taskText.classList.toggle("completed");
-    taskText.style.textDecoration = taskText.classList.contains("completed")
-      ? "line-through"
-      : "none";
-    event.stopPropagation();
-  });
-}
-
-function saveAsPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let tasks = document.querySelectorAll(".notes");
-  tasks.forEach((task, index) => {
-    doc.text(20, 10 + (10 * index), task.textContent.trim());
-  });
-  let fileName = `ToDoList_${Date.now()}.pdf`;
-  let fileURL = URL.createObjectURL(doc.output("blob"));
-  saveDocument(fileName, fileURL);
-  showPDFMessage();
-}
-
-function saveDocument(fileName, fileURL) {
-  let docItem = document.createElement("div");
-  docItem.className = "document-item";
-  docItem.innerHTML = `
-        <span>${fileName}</span>
-        <button onclick="viewPDF('${fileURL}')">View</button>
-        <button onclick="downloadPDF('${fileURL}', '${fileName}')">Download</button>
-        <button onclick="deletePDF(this)">Delete</button>
+    li.innerHTML = `
+      <div class="task-checkbox"></div>
+      <span class="task-text">${escapeHtml(task.text)}</span>
+      <button class="delete-btn" title="Delete task">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     `;
-  documentsList.appendChild(docItem);
-}
 
-function viewPDF(fileURL) {
-  window.open(fileURL, "_blank");
-}
+    // Toggle complete
+    li.addEventListener('click', e => {
+      if (e.target.closest('.delete-btn')) return;
+      task.completed = !task.completed;
+      li.classList.toggle('completed');
+      saveTasks();
+      updateMeta();
+    });
 
-function downloadPDF(fileURL, fileName) {
-  let a = document.createElement("a");
-  a.href = fileURL;
-  a.download = fileName;
-  a.click();
-}
+    // Delete
+    li.querySelector('.delete-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      li.style.transition = 'all 0.28s ease';
+      li.style.opacity = '0';
+      li.style.transform = 'translateX(20px)';
+      setTimeout(() => {
+        tasks = tasks.filter(t => t.id !== task.id);
+        li.remove();
+        saveTasks();
+        updateMeta();
+      }, 280);
+    });
 
-function deletePDF(button) {
-  button.parentElement.remove();
-}
+    todoList.appendChild(li);
+  }
 
-function showPDFMessage() {
-  pdfMessage.style.display = "block";
+  // ── Meta ──────────────────────────────────────────────
+  function updateMeta() {
+    const remaining = tasks.filter(t => !t.completed).length;
+    taskCountEl.textContent = remaining;
+    emptyState.classList.toggle('visible', tasks.length === 0);
+    // Progress calculation
+
+const completed =
+  tasks.filter(t => t.completed).length;
+
+const percent =
+  tasks.length === 0
+    ? 0
+    : Math.round((completed / tasks.length) * 100);
+
+progressFill.style.width = `${percent}%`;
+
+progressPercent.textContent = `${percent}%`;
+  }
+
+  // ── Save ──────────────────────────────────────────────
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  // ── Print / PDF ───────────────────────────────────────
+  printBtn.addEventListener('click', () => {
+    window.print();
+  });
+  // ───────────────── SAVE DOCUMENT ─────────────────
+
+saveDocBtn.addEventListener('click', () => {
+
+  if (tasks.length === 0) return;
+
+  const documents =
+    JSON.parse(localStorage.getItem('documents')) || [];
+
+  const snapshot = {
+    id: Date.now(),
+    date: new Date().toLocaleString(),
+    tasks: [...tasks]
+  };
+
+  documents.unshift(snapshot);
+
+  localStorage.setItem(
+    'documents',
+    JSON.stringify(documents)
+  );
+
+  renderDocuments();
+
+  saveDocBtn.innerHTML = "✓ Saved";
+
   setTimeout(() => {
-    pdfMessage.style.display = "none";
-  }, 3000);
-}
+    saveDocBtn.innerHTML = `
+      <svg viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save Document
+    `;
+  }, 1500);
+});
 
-function showHome() {
-  document.getElementById("home-tab").style.display = "block";
-  document.getElementById("documents-tab").style.display = "none";
-}
 
-function showDocuments() {
-  document.getElementById("home-tab").style.display = "none";
-  document.getElementById("documents-tab").style.display = "block";
-}
+// ───────────────── NAVIGATION ─────────────────
 
-// Functions to apply themes
-function c1() {
-  let image = 'linear-gradient(90deg, rgba(232,221,227,1) 33%, rgba(219,185,200,1) 100%, rgba(227,230,235,1) 100%)';
-  document.body.style.background = image;
-  currentTheme = "theme1";
-  updateNotesTheme();
-}
+homeNav.addEventListener('click', () => {
 
-function c2() {
-  let image = 'linear-gradient( 90deg, #e4afcb 0%, #b8cbb8 0%, #b8cbb8 0%, #e2c58b 30%, #c2ce9c 64%, #7edbdc 100%)';
-  document.body.style.background = image;
-  currentTheme = "theme2";
-  updateNotesTheme();
-}
+  homePage.classList.remove('hidden');
+  docsPage.classList.add('hidden');
 
-function c3() {
-  let image = 'linear-gradient(90deg, #39db8c, #a0c559, #d1ab51, #e6936b, #df868d)';
-  document.body.style.background = image;
-  currentTheme = "theme3";
-  updateNotesTheme();
-}
+  homeNav.classList.add('active');
+  docsNav.classList.remove('active');
+});
 
-function c4() {
-  let image = 'linear-gradient(90deg,rgb(120, 25, 105),rgb(197, 211, 201))';
-  document.body.style.background = image;
-  currentTheme = "theme4";
-  updateNotesTheme();
-}
+docsNav.addEventListener('click', () => {
 
-function c5() {
-  let image = 'linear-gradient(90deg, #b92b27, #1565c0)';
-  document.body.style.background = image;
-  currentTheme = "theme5";
-  updateNotesTheme();
-}
+  docsPage.classList.remove('hidden');
+  homePage.classList.add('hidden');
 
-function updateNotesTheme() {
-  const notes = document.querySelectorAll(".notes");
-  notes.forEach((note) => {
-    if (note.style.backgroundColor === "white") {
-      note.style.backgroundColor = currentTheme === "theme1"
-        ? "rgba(232,221,227,1)"
-        : currentTheme === "theme2"
-        ? "#e4afcb"
-        : currentTheme === "theme3"
-        ? "#39db8c"
-        : currentTheme === "theme4"
-        ? "rgb(120, 25, 105)"
-        : "#b92b27";
-    }
+  docsNav.classList.add('active');
+  homeNav.classList.remove('active');
+
+  renderDocuments();
+});
+
+
+// ───────────────── DOCUMENT RENDER ─────────────────
+
+function renderDocuments() {
+
+  const documents =
+    JSON.parse(localStorage.getItem('documents')) || [];
+
+  documentsList.innerHTML = '';
+
+  if (documents.length === 0) {
+
+    documentsList.innerHTML = `
+      <div class="empty-state visible">
+        No saved documents yet ✦
+      </div>
+    `;
+
+    return;
+  }
+
+  documents.forEach(doc => {
+
+    const div = document.createElement('div');
+
+    div.className = 'document-card';
+
+    div.innerHTML = `
+      <div class="doc-top">
+        <div>
+          <h3>Task Snapshot</h3>
+          <p>${doc.date}</p>
+        </div>
+
+        <button class="view-doc-btn">
+          View
+        </button>
+      </div>
+
+      <div class="doc-preview hidden">
+        ${
+          doc.tasks.map(task => `
+            <div class="preview-task">
+              ${task.completed ? '✓' : '○'} ${task.text}
+            </div>
+          `).join('')
+        }
+      </div>
+    `;
+
+    const viewBtn = div.querySelector('.view-doc-btn');
+    const preview = div.querySelector('.doc-preview');
+
+    viewBtn.addEventListener('click', () => {
+
+      preview.classList.toggle('hidden');
+
+      viewBtn.textContent =
+        preview.classList.contains('hidden')
+          ? 'View'
+          : 'Hide';
+    });
+
+    documentsList.appendChild(div);
   });
 }
+  // ── Util ──────────────────────────────────────────────
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ───────── THEME TOGGLE ─────────
+
+const savedTheme =
+  localStorage.getItem('theme');
+
+if (savedTheme === 'light') {
+  document.body.classList.add('light-mode');
+}
+
+themeToggle.addEventListener('click', () => {
+
+  document.body.classList.toggle('light-mode');
+
+  const currentTheme =
+    document.body.classList.contains('light-mode')
+      ? 'light'
+      : 'dark';
+
+  localStorage.setItem(
+    'theme',
+    currentTheme
+  );
+});
+});
+
