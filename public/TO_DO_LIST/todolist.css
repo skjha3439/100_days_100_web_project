@@ -58,6 +58,7 @@ body {
   border: 2px solid white;
   border-radius: 50%;
   cursor: pointer;
+  transition: transform 0.5s ease-in-out;
 }
 #colour1 {
   background: linear-gradient(
@@ -108,9 +109,7 @@ body {
 #colour3:hover ,
 #colour4:hover ,
 #colour5:hover {
-  height: 55px;
-  width: 55px;
-  transition: 0.8s;
+ transform: scale(1.2);
 }
 .main {
   display: grid;
