@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'https://esm.sh/react@18.3.1';
 import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
+// NOTE (difficulty): Some OGL CDN builds don't export `Triangle` — use `Geometry`.
+// Also shader outputs vary widely across GPUs; we keep a CSS fallback for visibility.
 import { Renderer, Program, Mesh, Color, Geometry } from 'https://cdn.jsdelivr.net/npm/ogl@0.0.32/dist/ogl.mjs';
 
 const vertexShader = `

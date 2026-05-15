@@ -163,6 +163,36 @@ async function fetchRepoStats() {
     }
 }
 
+// NOTE (difficulty): Generating content client-side must sanitize URLs and
+// avoid heavy sync work; large project lists may block the main thread.
+
+function generateReadme() {
+    try {
+        const lines = [];
+        lines.push('# 100 Days · 100 Web Projects');
+        lines.push('A curated archive of frontend experiments — browse, fork, contribute.');
+        lines.push('');
+        lines.push('## Projects');
+        PROJECTS.forEach(([day, name, url, tags, cat]) => {
+            const safeUrl = url || '';
+            const tagList = (tags || []).join(', ');
+            lines.push(`- **${day} — ${name}** — ${safeUrl} — _${cat}_ — ${tagList}`);
+        });
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'README.md';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+    } catch (e) {
+        console.error('Failed to generate README:', e);
+        alert('Could not generate README. See console for details.');
+    }
+}
+
 /* ============================================================
    RENDER PROJECT GRID
    ============================================================ */
@@ -276,6 +306,7 @@ function updateNavbar() {
         container.innerHTML = `
             <span class="welcome-text">Hi, ${username}</span>
             <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out</button>
+            <button class="btn btn-ghost btn-sm" id="generateReadmeBtn">Generate README</button>
             <a class="btn btn-ghost btn-sm" href="https://github.com/dhairyagothi/100_days_100_web_project" target="_blank">
                 <i class="fab fa-github"></i> GitHub
             </a>
@@ -285,14 +316,19 @@ function updateNavbar() {
             window.username = null;
             updateNavbar();
         });
+        const gen = document.getElementById('generateReadmeBtn');
+        if (gen) gen.addEventListener('click', generateReadme);
     } else {
         container.innerHTML = `
             <a class="btn btn-ghost btn-sm" href="${base}contributors/contributor.html">Contributors</a>
             <a class="btn btn-ghost btn-sm" href="https://github.com/dhairyagothi" target="_blank">
                 <i class="fab fa-github"></i> GitHub
             </a>
+            <button class="btn btn-ghost btn-sm" id="generateReadmeBtn">Generate README</button>
             <a class="btn btn-primary btn-sm" href="${base}public/Login.html">Sign in</a>
         `;
+        const gen2 = document.getElementById('generateReadmeBtn');
+        if (gen2) gen2.addEventListener('click', generateReadme);
     }
 }
 
