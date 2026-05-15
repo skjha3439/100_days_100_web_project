@@ -116,10 +116,10 @@ const themeIcon = themeToggle ? themeToggle.querySelector('i') : null;
 
 if (themeToggle) {
     themeToggle.addEventListener("click", () => {
-        document.body.classList.toggle("light-theme");
+        document.body.classList.toggle("light-mode");
 
         // Save theme
-        if (document.body.classList.contains("light-theme")) {
+        if (document.body.classList.contains("light-mode")) {
             localStorage.setItem("theme", "light");
         } else {
             localStorage.setItem("theme", "dark");
@@ -132,7 +132,7 @@ window.addEventListener("load", () => {
     const savedTheme = localStorage.getItem("theme");
 
     if (savedTheme === "light") {
-        document.body.classList.add("light-theme");
+        document.body.classList.add("light-mode");
     }
 });
 
