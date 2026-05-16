@@ -20,10 +20,10 @@ async function fetchRepoStats() {
         const issueEl = document.getElementById('issueCount');
         const prEl = document.getElementById('prCount');
 
-        if (starEl) starEl.textContent = repoData.stargazers_count.toLocaleString();
-        if (forkEl) forkEl.textContent = repoData.forks_count.toLocaleString();
-        if (issueEl) issueEl.textContent = (repoData.open_issues_count - prData.total_count).toLocaleString();
-        if (prEl) prEl.textContent = prData.total_count.toLocaleString();
+        if (starEl) starEl.textContent = (repoData.stargazers_count || 0).toLocaleString();
+        if (forkEl) forkEl.textContent = (repoData.forks_count || 0).toLocaleString();
+        if (issueEl) issueEl.textContent = Math.max(0, (repoData.open_issues_count || 0) - (prData.total_count || 0)).toLocaleString();
+        if (prEl) prEl.textContent = (prData.total_count || 0).toLocaleString();
     } catch (error) {
         console.error("Error fetching repo stats:", error);
     }
@@ -136,8 +136,11 @@ function updateNavbar() {
         </button>
     `;
 
+    const readmeBtn = `<a href="https://www.github-readme.tech" target="_blank" class="button featured-btn"><i class="fas fa-rocket"></i><span>Generate README</span></a>`;
+
     if (username) {
         buttons.innerHTML = `
+        ${readmeBtn}
         <span class="welcome-text">Welcome, ${username}</span>
         <button class="button logout-btn" id='logout'>Logout</button>
         <a class="button" href="https://github.com/dhairyagothi" target="_blank">GitHub</a>
@@ -150,6 +153,7 @@ function updateNavbar() {
         });
     } else {
         buttons.innerHTML = `
+        ${readmeBtn}
         <a class="button" href="${basePath}contributors/contributor.html">Contributors</a>
         <a class="button" href="https://github.com/dhairyagothi" target="_blank">GitHub</a>
         <a class="button login-btn" href="${basePath}public/Login.html">Log in</a>
@@ -176,14 +180,10 @@ function updateNavbar() {
     }
 }
 
-let currentPage = 1;
-const itemsPerPage = 10;
-let projectData = [];
-
 // Populate the table with project data
 function fillTable(searchTerm = "") {
     const tableBody = document.getElementById("tableBody");
-    const noProjectsMessage = document.getElementById("noProjects");
+    const noProjectsMessage = document.getElementById("no-projects");
     
     if (!tableBody) return;
 
@@ -304,7 +304,8 @@ function fillTable(searchTerm = "") {
         ["Day 114", "EchoNotes", "./public/EchoNotes/index.html"],
         ["Day 115", "Event Registration System", "https://event-registration-system-w10a.onrender.com/"],
         ["Day 116", "AI Image Classifier", "./public/AI Image Classifier/index.html"],
-        ["Day 117", "The Last Tab", "./public/TheLastTab/index.html"]
+        ["Day 117", "The Last Tab", "./public/TheLastTab/index.html"],
+        ["Day 118", "Random-Joke-Generator", "./public/RandomJokeGenerator/index.html"]
     ];
 
     // Clear existing rows
@@ -329,7 +330,7 @@ function fillTable(searchTerm = "") {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${project[0]}</td>
-            <td>${project[1]}</td>
+            <td class="project-name">${project[1]}</td>
             <td><a class="button" href="${project[2]}" target="_blank">Live Demo</a></td>
         `;
         tableBody.appendChild(row);
@@ -402,10 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fillTable();
 
     // Hook into search input
-    const searchInput = document.getElementById("projectSearch");
+    const searchInput = document.getElementById("searchInput");
     if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
-            fillTable(e.target.value);
+        searchInput.addEventListener("input", () => {
+            filterProjects();
         });
     }
 });
