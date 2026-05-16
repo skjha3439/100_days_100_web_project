@@ -47,11 +47,24 @@ const TYPE_COLORS = {
 function Add() {
   const text = taskInput.value.trim();
 
+
   if (text === "") {
     taskInput.focus();
     taskInput.style.borderColor = "rgba(255, 80, 80, 0.8)";
     setTimeout(() => { taskInput.style.borderColor = ""; }, 1200);
     return;
+
+  const notes = document.querySelectorAll(".notes");
+
+  if (notes.length > 0) {
+    const lastNote = notes[notes.length - 1];
+    const taskText = lastNote.querySelector("span");
+
+    if (taskText && (taskText.innerText.trim() === "Click here to add a task..." || taskText.innerText.trim() === "")) {
+      alert("Please add a task to the previous note before creating a new one!");
+      return;
+    }
+
   }
 
   const selectedType  = taskTypeSelect.value;
@@ -235,3 +248,58 @@ function showDocuments() {
   document.getElementById("home-tab").style.display      = "none";
   document.getElementById("documents-tab").style.display = "block";
 }
+
+
+// Functions to apply themes
+function c1() {
+  let image = 'linear-gradient(90deg, rgba(232,221,227,1) 33%, rgba(219,185,200,1) 100%, rgba(227,230,235,1) 100%)';
+  document.body.style.background = image;
+  currentTheme = "theme1";
+  updateNotesTheme();
+}
+
+function c2() {
+  let image = 'linear-gradient( 90deg, #e4afcb 0%, #b8cbb8 0%, #b8cbb8 0%, #e2c58b 30%, #c2ce9c 64%, #7edbdc 100%)';
+  document.body.style.background = image;
+  currentTheme = "theme2";
+  updateNotesTheme();
+}
+
+function c3() {
+  let image = 'linear-gradient(90deg, #39db8c, #a0c559, #d1ab51, #e6936b, #df868d)';
+  document.body.style.background = image;
+  currentTheme = "theme3";
+  updateNotesTheme();
+}
+
+function c4() {
+  let image = 'linear-gradient(90deg,rgb(120, 25, 105),rgb(197, 211, 201))';
+  document.body.style.background = image;
+  currentTheme = "theme4";
+  updateNotesTheme();
+}
+
+function c5() {
+  let image = 'linear-gradient(90deg, #b92b27, #1565c0)';
+  document.body.style.background = image;
+  currentTheme = "theme5";
+  updateNotesTheme();
+}
+
+function updateNotesTheme() {
+  const notes = document.querySelectorAll(".notes");
+  notes.forEach((note) => {
+    if (note.style.backgroundColor === "white") {
+      note.style.backgroundColor = currentTheme === "theme1"
+        ? "rgba(232,221,227,1)"
+        : currentTheme === "theme2"
+          ? "#e4afcb"
+          : currentTheme === "theme3"
+            ? "#39db8c"
+            : currentTheme === "theme4"
+              ? "rgb(120, 25, 105)"
+              : "#b92b27";
+    }
+  });
+}
+
