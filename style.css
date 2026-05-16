@@ -162,6 +162,7 @@ body {
     color: #000 !important;
 }
 
+#theme-toggle,
 #themeToggle {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -177,6 +178,7 @@ body {
     transition: var(--transition);
 }
 
+#theme-toggle:hover,
 #themeToggle:hover {
     background: var(--accent-color);
     color: #000;
@@ -520,4 +522,43 @@ tbody td a:hover {
     .table-container { padding: 1.5rem; }
     thead { display: none; }
     tbody td { padding: 1.2rem 1rem; }
+}
+
+.stats-counter {
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pagination-container button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: #1abc9c;
+    color: white;
+    font-weight: 600;
+}
+
+.pagination-container button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-container button:hover {
+    opacity: 0.9;
+}
+
+#no-projects {
+    display: none;
 }
