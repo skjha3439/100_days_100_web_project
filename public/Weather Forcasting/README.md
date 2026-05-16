@@ -63,7 +63,7 @@ No API key or sign-up is required. Works completely in the browser.
 
 > _Add screenshots of your project here_
 
-![Weather App Screenshot](screenshot.png)
+![Weather App Screenshot](./Screenshots.png)
 
 ---
 
