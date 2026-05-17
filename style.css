@@ -549,6 +549,40 @@ body.light-mode .navbar {
   color: var(--text-primary);
 }
 
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+}
+
+.view-all-btn {
+  border: 1px solid var(--border);
+
+  background: transparent;
+
+  color: var(--text-secondary);
+
+  padding: 0.45rem 0.9rem;
+
+  border-radius: 10px;
+
+  font-size: 0.8rem;
+
+  cursor: pointer;
+
+  transition: var(--t);
+}
+
+.view-all-btn:hover {
+  background: var(--accent-dim);
+
+  color: var(--accent);
+
+  border-color: var(--border-accent);
+}
+
 /* Search + filter row */
 .projects-header {
   display: flex;

@@ -819,6 +819,11 @@ let bookmarkedProjects =
 
 let recentProjects = JSON.parse(localStorage.getItem('recentProjects')) || [];
 
+let showAllBookmarks = false;
+let showAllRecent = false;
+
+const INITIAL_VISIBLE_ITEMS = 3;
+
 // Category labels mapping
 const CATEGORY_LABEL = {
   beginner: 'Beginner',
@@ -1016,7 +1021,18 @@ function renderBookmarks() {
     return;
   }
 
-  bookmarkedProjects.forEach(([day, name, url, tags, cat]) => {
+  if (bookmarkToggleBtn) {
+    bookmarkToggleBtn.style.display =
+      bookmarkedProjects.length <= INITIAL_VISIBLE_ITEMS
+        ? 'none'
+        : 'inline-flex';
+  }
+
+  const visibleBookmarks = showAllBookmarks
+    ? bookmarkedProjects
+    : bookmarkedProjects.slice(0, INITIAL_VISIBLE_ITEMS);
+
+  visibleBookmarks.forEach(([day, name, url, tags, cat]) => {
     const card = document.createElement('div');
 
     card.className = 'project-card';
@@ -1081,7 +1097,16 @@ function renderRecentProjects() {
     return;
   }
 
-  recentProjects.forEach(([day, name, url, tags, cat]) => {
+  if (recentToggleBtn) {
+    recentToggleBtn.style.display =
+      recentProjects.length <= INITIAL_VISIBLE_ITEMS ? 'none' : 'inline-flex';
+  }
+
+  const visibleRecent = showAllRecent
+    ? recentProjects
+    : recentProjects.slice(0, INITIAL_VISIBLE_ITEMS);
+
+  visibleRecent.forEach(([day, name, url, tags, cat]) => {
     const card = document.createElement('div');
 
     card.className = 'project-card';
@@ -1126,6 +1151,34 @@ function renderRecentProjects() {
     </div>
 `;
     recentGrid.appendChild(card);
+  });
+}
+
+/* ============================================
+   VIEW ALL TOGGLE
+============================================ */
+
+const bookmarkToggleBtn = document.getElementById('bookmarkToggleBtn');
+
+const recentToggleBtn = document.getElementById('recentToggleBtn');
+
+if (bookmarkToggleBtn) {
+  bookmarkToggleBtn.addEventListener('click', () => {
+    showAllBookmarks = !showAllBookmarks;
+
+    bookmarkToggleBtn.textContent = showAllBookmarks ? 'Show Less' : 'View All';
+
+    renderBookmarks();
+  });
+}
+
+if (recentToggleBtn) {
+  recentToggleBtn.addEventListener('click', () => {
+    showAllRecent = !showAllRecent;
+
+    recentToggleBtn.textContent = showAllRecent ? 'Show Less' : 'View All';
+
+    renderRecentProjects();
   });
 }
 
