@@ -130,7 +130,7 @@ const PROJECTS = [
     ["Day 114", "EchoNotes",                           "./public/EchoNotes/index.html",                                                                                  ["JS","SpeechAPI"],        "tool"],
     ["Day 115", "Event Registration System",           "https://event-registration-system-w10a.onrender.com/",                                                           ["Node","Express"],        "tool"],
     ["Day 116", "AI Image Classifier",                 "./public/AI Image Classifier/index.html",                                                                        ["HTML","CSS","JS","AI"], "tool"],
-    ['Day 117', 'Habit Tracker Web App', './public/Habit-Tracker-Web-App/index.html'],
+    ["Day 117", "Habit Tracker Web App",               "./public/Habit-Tracker-Web-App/index.html",                                                                      ["HTML","CSS","JS"],       "tool"],
 ];
 
 const CATEGORY_LABEL = {
@@ -230,12 +230,14 @@ function renderGrid() {
         const card = document.createElement('div');
         card.className = 'project-card';
 
-        const tagsHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
+        const tagsHTML = (tags && Array.isArray(tags)) ? tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
+
+        const categoryLabel = cat ? (CATEGORY_LABEL[cat] || cat) : 'Project';
 
         card.innerHTML = `
             <div class="card-meta">
                 <span class="card-day">${day}</span>
-                <span class="card-category">${CATEGORY_LABEL[cat] || cat}</span>
+                <span class="card-category">${categoryLabel}</span>
             </div>
             <div class="card-name">${name}</div>
             <div class="card-tags">${tagsHTML}</div>
