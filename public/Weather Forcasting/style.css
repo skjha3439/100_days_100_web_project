@@ -154,6 +154,18 @@ table {
   transform: translateY(-3px);
 }
 
+#error-message {
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd166;
+  padding: 10px 18px;
+  border-radius: 10px;
+  width: fit-content;
+  margin: 10px auto;
+  text-align: center;
+  font-weight: bold;
+  display: none;
+}
+
 @media (max-width: 768px) {
   h1 {
     font-size: 28px;

@@ -1,7 +1,7 @@
 const options = {
   method: "GET",
   headers: {
-    "X-RapidAPI-Key": "2c06e2f780msh3f81c0245629ba6p19a960jsn5eff9cb95a57",
+    "X-RapidAPI-Key": "YOUR_API_KEY",
     "X-RapidAPI-Host": "weather-by-api-ninjas.p.rapidapi.com",
   },
 };
@@ -18,12 +18,18 @@ const getWeather = (city) => {
       console.log(response);
 
       if (response.error || response.temp === undefined) {
-        document.getElementById("error-message").innerHTML =
-          "Weather data unavailable right now.";
+        const errorMsg = document.getElementById("error-message");
+
+        errorMsg.style.display = "block";
+        errorMsg.innerHTML = "Weather data unavailable right now.";
+
+        setTimeout(() => {
+          errorMsg.style.display = "none";
+        }, 4000);
         return;
       }
 
-      document.getElementById("error-message").innerHTML = "";
+      errorMsg.style.display = "none";
 
       temp.innerHTML = response.temp;
       temp2.innerHTML = response.temp;
@@ -84,3 +90,5 @@ topBtn.addEventListener("click", () => {
     behavior: "smooth",
   });
 });
+
+getWeather("Mumbai");
