@@ -813,6 +813,11 @@ const PROJECT_DATA = [
     'javascript', 
     'intermediate'
   ]
+    'Day 118',
+    'Connect4 Game',
+    './public/Connect4/index.html',
+    'javascript game',
+    'intermediate'
 ];
 
 // Alias for consistency
