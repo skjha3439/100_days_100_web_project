@@ -44,7 +44,7 @@ jobs:
           start_marker = "<!-- readme: contributors -start -->"
           end_marker = "<!-- readme: contributors -end -->"
           columns_per_row = 6
-          max_commit_pages = 20
+          max_commit_pages = 10
 
           content = readme_path.read_text(encoding="utf-8")
           section_match = re.search(
@@ -116,13 +116,13 @@ jobs:
                   date_str = author_info.get("date")
                   if not date_str:
                       continue
+                  normalized_date = (
+                      date_str[:-1] + "+00:00" if date_str.endswith("Z") else date_str
+                  )
                   try:
-                      parsed_date = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
+                      parsed_date = datetime.fromisoformat(normalized_date)
                   except ValueError:
-                      try:
-                          parsed_date = datetime.fromisoformat(date_str)
-                      except ValueError:
-                          continue
+                      continue
                   latest_by_username[username] = parsed_date.timestamp()
                   remaining_usernames.discard(username)
 
@@ -139,8 +139,10 @@ jobs:
               for index, username, cell in contributors
           ]
 
-          # Sort by latest commit first, keep unknown timestamps at the end,
-          # and preserve original relative order for ties.
+          # Sort key tuple:
+          # 1) item[1] is None: unknown timestamps go last
+          # 2) -(item[1] or 0): newer commit timestamps first
+          # 3) item[0]: preserve original order for ties
           contributors.sort(
               key=lambda item: (
                   item[1] is None,
