@@ -45,7 +45,7 @@ jobs:
           end_marker = "<!-- readme: contributors -end -->"
           columns_per_row = 6
           commits_per_page = 100
-          max_commit_pages = 50
+          max_commit_pages = 20
 
           content = readme_path.read_text(encoding="utf-8")
           section_match = re.search(
@@ -76,7 +76,7 @@ jobs:
           contributors = []
           usernames = set()
           for index, cell in enumerate(cells):
-              username_match = re.search(r"https://github\.com/([^\"/\s]+)", cell)
+              username_match = re.search(r"https://github\.com/([a-zA-Z0-9-]+)", cell)
               if not username_match:
                   contributors.append((index, None, cell))
                   continue
@@ -125,13 +125,15 @@ jobs:
                   date_str = author_info.get("date")
                   if not date_str:
                       continue
-                  normalized_date = (
-                      date_str[:-1] + "+00:00" if date_str.endswith("Z") else date_str
-                  )
                   try:
-                      parsed_date = datetime.fromisoformat(normalized_date)
+                      parsed_date = datetime.fromisoformat(date_str)
                   except ValueError:
-                      continue
+                      if not date_str.endswith("Z"):
+                          continue
+                      try:
+                          parsed_date = datetime.fromisoformat(date_str[:-1] + "+00:00")
+                      except ValueError:
+                          continue
                   latest_by_username[username] = parsed_date.timestamp()
                   remaining_usernames.discard(username)
                   if not remaining_usernames:
