@@ -114,6 +114,32 @@ function Add() {
     selection.addRange(range);
   });
 
+  function saveTaskEdit() {
+    const updatedText = taskText.innerText.trim();
+
+    if (updatedText === '') {
+      taskText.innerText = text;
+    }
+
+    taskText.setAttribute('contenteditable', 'false');
+    note.classList.remove('editing');
+  }
+
+  taskText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTaskEdit();
+    }
+
+    if (e.key === 'Escape') {
+      taskText.innerText = text;
+      taskText.setAttribute('contenteditable', 'false');
+      note.classList.remove('editing');
+    }
+  });
+
+  taskText.addEventListener('blur', saveTaskEdit);
+
   // Actions column
   const actions = document.createElement('div');
   actions.style.cssText =
