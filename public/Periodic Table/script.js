@@ -117,7 +117,9 @@ const elements = [
     { number: 116, symbol: "Lv", name: "Livermorium", mass: "293", group: 16, period: 7 },
     { number: 117, symbol: "Ts", name: "Tennessine", mass: "294", group: 17, period: 7 },
     { number: 118, symbol: "Og", name: "Oganesson", mass: "295", group: 18, period: 7 }
-];// ==========================================
+];
+
+// ==========================================
 // ELECTRON CONFIGURATIONS & MOLECULAR LOGIC
 // ==========================================
 
@@ -147,15 +149,21 @@ const shellConfigurations = {
     115: [2, 8, 18, 32, 32, 18, 5], 116: [2, 8, 18, 32, 32, 18, 6], 117: [2, 8, 18, 32, 32, 18, 7], 118: [2, 8, 18, 32, 32, 18, 8]
 };
 
-// Maps element properties to specific categories dynamically
+// Maps element properties to chemically accurate categories dynamically
 function getElementCategory(element) {
     const num = element.number;
     const g = element.group;
     const p = element.period;
 
     if (num === 1) return "nonmetal"; // Hydrogen
+    // Lanthanides
+    if (num >= 57 && num <= 71) return "lanthanide";
+    // Actinides
+    if (num >= 89 && num <= 103) return "actinide";
+    
     if (g === 1) return "alkali";
     if (g === 2) return "alkaline-earth";
+    if (g === 17) return "halogen";
     if (g === 18) return "noble-gas";
     
     // Metalloids
@@ -164,8 +172,8 @@ function getElementCategory(element) {
     // Reactive Nonmetals
     if ([6, 7, 8, 9, 15, 16, 17, 34, 35, 53].includes(num)) return "nonmetal";
     
-    // Transition metals (including Lanthanoids and Actinoids)
-    if ((g >= 3 && g <= 12) || (num >= 57 && num <= 71) || (num >= 89 && num <= 103)) return "transition";
+    // Transition metals
+    if (g >= 3 && g <= 12) return "transition";
     
     // Post-transition metals
     if ([13, 31, 49, 50, 81, 82, 83, 113, 114, 115, 116].includes(num)) return "metal";
@@ -173,8 +181,12 @@ function getElementCategory(element) {
     return "transition";
 }
 
-const container = document.querySelector(".table-container");
+// Find Category for each element
+elements.forEach(el => {
+    el.category = getElementCategory(el);
+});
 
+const container = document.querySelector(".table-container");
 const totalGroups = 18; 
 const totalPeriods = 7; 
 
@@ -186,23 +198,25 @@ for (let period = 1; period <= totalPeriods; period++) {
         const cell = document.createElement("div");
         cell.className = "empty"; 
 
+        // Find an element matching the group and period
         const element = elements.find((el) => el.group === group && el.period === period);
-
         if (element) {
-            const category = getElementCategory(element);
-            cell.className = `element ${category}`;
+            cell.className = `element ${element.category}`;
             cell.style.setProperty("--i", element.number);
             cell.innerHTML = `
                 <div class="element-number">${element.number}</div>
                 <div class="element-symbol">${element.symbol}</div>
                 <div class="element-name">${element.name}</div>
-                <div class="tooltip">Atomic Mass: ${element.mass}</div>
+                <div class="tooltip">
+                    ${element.name}<br/>
+                    Category: ${element.category.replace("-", " ")} <br/>
+                    Atomic Mass: ${element.mass}
+                </div>
             `;
             
             // Open interactive modal on click
             cell.addEventListener("click", () => openModal(element));
         }
-
         container.appendChild(cell);
     }
 }
@@ -269,9 +283,8 @@ function openModal(element) {
     modalName.textContent = element.name;
     
     // Category Badge
-    const category = getElementCategory(element);
-    modalCategory.className = `modal-category-badge badge-${category}`;
-    modalCategory.textContent = category.replace("-", " ");
+    modalCategory.className = `modal-category-badge badge-${element.category}`;
+    modalCategory.textContent = element.category.replace("-", " ");
     
     // Mass & Particle configuration
     modalMass.textContent = element.mass;
@@ -403,9 +416,9 @@ function animate() {
         ctx.arc(centerX + p.x + jiggleX, centerY + p.y + jiggleY, 4.5, 0, Math.PI * 2);
         
         // Red color for protons, Blue color for neutrons
+        ctx.shadowBlur = 4;
         ctx.fillStyle = p.isProton ? "#f87171" : "#60a5fa";
         ctx.shadowColor = p.isProton ? "#ef4444" : "#3b82f6";
-        ctx.shadowBlur = 4;
         ctx.fill();
         ctx.shadowBlur = 0; // Reset shadow for efficiency
     });
@@ -535,4 +548,131 @@ window.addEventListener("resize", () => {
     if (currentElement) {
         resizeCanvas();
     }
+});
+
+//---------------Add Lanthanoids----------------
+const lanContainer = document.createElement("div");
+lanContainer.style.display = "flex";
+lanContainer.style.alignItems = "center";
+lanContainer.style.marginTop = "20px";
+
+// Label + arrow
+const lanLabel = document.createElement("div");
+lanLabel.innerHTML = "<b>Lanthanoids →</b>";
+lanLabel.style.width = "140px";
+lanLabel.style.fontSize = "16px";
+
+// Row
+const lanRow = document.createElement("div");
+lanRow.style.display = "grid";
+lanRow.style.gridTemplateColumns = "repeat(15, 65px)";
+lanRow.style.gap = "5px";
+
+elements
+    .filter(el => el.number >= 57 && el.number <= 71)
+    .forEach(el => {
+        const div = document.createElement("div");
+        div.className = `element ${el.category}`;
+        div.innerHTML = `
+        <div class="element-number">${el.number}</div>
+        <div class="element-symbol">${el.symbol}</div>
+        <div class="element-name">${el.name}</div>
+        <div class="tooltip">
+            ${el.name}<br/>
+            Category: ${el.category.replace("-", " ")} <br/>
+            Atomic Mass: ${el.mass}
+        </div>
+    `;
+        div.addEventListener("click", () => openModal(el));
+        lanRow.appendChild(div);
+    });
+
+lanContainer.appendChild(lanLabel);
+lanContainer.appendChild(lanRow);
+document.querySelector(".main-container").appendChild(lanContainer);
+
+
+//--------------Add Actinides------------------
+const actContainer = document.createElement("div");
+actContainer.style.display = "flex";
+actContainer.style.alignItems = "center";
+actContainer.style.marginTop = "10px";
+
+// Label + arrow
+const actLabel = document.createElement("div");
+actLabel.innerHTML = "<b>Actinides →</b>";
+actLabel.style.width = "140px";
+actLabel.style.fontSize = "16px";
+
+// Row
+const actRow = document.createElement("div");
+actRow.style.display = "grid";
+actRow.style.gridTemplateColumns = "repeat(15, 65px)";
+actRow.style.gap = "5px";
+
+elements
+    .filter(el => el.number >= 89 && el.number <= 103)
+    .forEach(el => {
+        const div = document.createElement("div");
+        div.className = `element ${el.category}`;
+        div.innerHTML = `
+            <div class="element-number">${el.number}</div>
+            <div class="element-symbol">${el.symbol}</div>
+            <div class="element-name">${el.name}</div>
+            <div class="tooltip">
+                ${el.name}<br/>
+                Category: ${el.category.replace("-", " ")} <br/>
+                Atomic Mass: ${el.mass}
+            </div>
+        `;
+        div.addEventListener("click", () => openModal(el));
+        actRow.appendChild(div);
+    });
+
+actContainer.appendChild(actLabel);
+actContainer.appendChild(actRow);
+document.querySelector(".main-container").appendChild(actContainer);
+
+
+// Filter categories from Dropdown List
+const filter = document.getElementById("categoryFilter");
+filter.addEventListener("change", () => {
+    const selected = filter.value;
+    document.querySelectorAll(".element").forEach(el => {
+        if (selected === "all" || el.classList.contains(selected)) {
+            el.style.opacity = "1";
+            el.style.pointerEvents = "auto";
+        } else {
+            el.style.opacity = "0.2";
+            el.style.pointerEvents = "none";
+        }
+    });
+});
+
+// All Categories (including Post-transition Metals 'metal')
+const categories = {
+    alkali: "Alkali Metals",
+    "alkaline-earth": "Alkaline Earth",
+    transition: "Transition Metals",
+    metal: "Post-transition Metals",
+    metalloid: "Metalloids",
+    nonmetal: "Non-metals",
+    halogen: "Halogens",
+    "noble-gas": "Noble Gases",
+    lanthanide: "Lanthanoids",
+    actinide: "Actinides"
+};
+
+const legendContainer = document.querySelector(".legend");
+
+Object.keys(categories).forEach(cat => {
+    const item = document.createElement("div");
+    item.classList.add("legend-item");
+    const colorBox = document.createElement("div");
+    colorBox.classList.add("color-box", cat);
+    const label = document.createElement("span");
+    label.innerText = categories[cat];
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legendContainer.appendChild(item);
 });

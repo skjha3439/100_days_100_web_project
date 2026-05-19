@@ -10,6 +10,13 @@ body {
     color: #333;
 }
 
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;   
+    justify-content: center;
+}
+
 .table-container {
     display: grid;
     grid-template-columns: repeat(18, 65px);
@@ -46,11 +53,15 @@ body {
 .alkaline-earth { background: linear-gradient(145deg, #f8bbd0, #f48fb1); }
 .transition { background: linear-gradient(145deg, #fff9c4, #fff59d); }
 .metalloid { background: linear-gradient(145deg, #d1c4e9, #b39ddb); }
+.halogen { background: linear-gradient(145deg, #ffe082, #ffd54f); }
+.lanthanide { background: linear-gradient(145deg, #ffccd5, #ffb3b3); }
+.actinide { background: linear-gradient(145deg, #ffe5cc, #ffcc99); }
 
 .element:hover {
-    transform: scale(1.06);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-10px) scale(1.1);
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
     z-index: 100;
+    animation: elementPulse 1.5s infinite;
 }
 
 .element:active {
@@ -154,7 +165,6 @@ body {
     100% { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
 }
 
-
 /* Add media query for better responsiveness */
 @media (max-width: 1200px) {
     .table-container {
@@ -169,6 +179,87 @@ body {
         transform: scale(0.8);
     }
 }
+
+/* Legend Styling */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.8);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.color-box {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+}
+
+/* Controls Styling */
+.controls {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.controls::after {
+    content: "▼";
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 12px;
+    color: #555;
+}
+
+#categoryFilter {
+    appearance: none; 
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 10px 40px 10px 15px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: 500;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#categoryFilter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+#categoryFilter:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #90caf9, 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+#categoryFilter option {
+    background: #fff;
+    color: #333;
+}
+
+.label-arrow {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
 
 /* ==========================================
    MODAL & ATOMIC ELECTRON ANIMATION STYLES
@@ -314,6 +405,9 @@ body {
 .badge-metalloid { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; }
 .badge-nonmetal { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
 .badge-metal { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+.badge-halogen { background: linear-gradient(135deg, #ffe082, #ffd54f); color: #333; }
+.badge-lanthanide { background: linear-gradient(135deg, #ffccd5, #ffb3b3); color: #333; }
+.badge-actinide { background: linear-gradient(135deg, #ffe5cc, #ffcc99); color: #333; }
 
 /* Stats Grid */
 .stat-title {
@@ -576,4 +670,4 @@ body {
     .control-panel {
         max-width: 320px;
     }
-}
+}
