@@ -84,7 +84,8 @@ jobs:
 
           latest_by_username = {}
           page = 1
-          while usernames - latest_by_username.keys():
+          remaining_usernames = set(usernames)
+          while remaining_usernames:
               url = (
                   f"https://api.github.com/repos/{repository}/commits"
                   f"?per_page=100&page={page}"
@@ -117,6 +118,7 @@ jobs:
                   latest_by_username[username] = datetime.fromisoformat(
                       date_str.replace("Z", "+00:00")
                   ).timestamp()
+                  remaining_usernames.discard(username)
 
               if len(payload) < 100:
                   break
@@ -131,6 +133,8 @@ jobs:
               for index, username, cell in contributors
           ]
 
+          # Sort by latest commit first, keep unknown timestamps at the end,
+          # and preserve original relative order for ties.
           contributors.sort(
               key=lambda item: (
                   item[1] is None,
