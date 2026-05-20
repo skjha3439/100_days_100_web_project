@@ -123,7 +123,7 @@ const PROJECT_DATA = [
   ['Day 104', 'Debug-Website', './public/Debug-Website/index.html', 'css', 'beginner'],
   ['Day 105', 'Periodic Table', './public/Periodic Table/index.html', 'css javascript', 'beginner'],
   ['Day 106', 'Plants Website', './public/Plants Website/index.html', 'css', 'beginner'],
-  ['Day 107', 'DocNow', './public/DocNow/index.html', 'api javascript', 'intermediate'],
+['Day 107', 'DocNow', './public/DocNow/', 'api javascript', 'intermediate'],
   ['Day 108', 'expense_Tracker', './public/expense_Tracker/index.html', 'todo javascript', 'intermediate'],
   ['Day 109', 'Mood Tracker', './public/Mood Tracker/index.html', 'todo javascript', 'intermediate'],
   ['Day 110', 'CRYPTOSHOW', './public/CRYPTOSHOW/index.html', 'api javascript', 'intermediate'],
@@ -132,7 +132,7 @@ const PROJECT_DATA = [
   ['Day 113', 'CPU Scheduler', './public/CpuScheduler/index.html', 'tool javascript', 'intermediate'],
   ['Day 114', 'EchoNotes', './public/EchoNotes/index.html', 'todo javascript', 'intermediate'],
   ['Day 115', 'Event Registration System', 'https://event-registration-system-w10a.onrender.com/', 'api javascript', 'intermediate'],
-  ['Day 116', 'AI Image Classifier', './public/AI Image Classifier/index.html', 'api javascript', 'intermediate'],
+['Day 116', 'AI Image Classifier', './public/AI Image Classifier/', 'api javascript', 'intermediate'],
   ['Day 117', 'Habit Tracker Web App', './public/Habit-Tracker-Web-App/index.html', 'ui tool html css js', 'intermediate'],
   ['Day 118', 'Particle Effect', './public/particle-effect/index.html', 'ui html css js canvas', 'intermediate'],
   ['Day 119', 'Virtual Playground', './playground.html', 'ui game html css js', 'intermediate'],
@@ -143,12 +143,35 @@ const PROJECT_DATA = [
   ['Day 124', 'Hurdle Highway 2D',   './public/Hurdle_Highway_2D/index.html', 'game', 'intermediate'],
   ['Day 125', 'Snakeladder',   './public/Snakeladder/index.html', 'game', 'intermediate'],
   ['Day 126', 'Temperature Converter', './public/TemperatureConverter/index.html', 'tool javascript', 'beginner'],
-  ['Day 127', 'Reaction Time Test', './public/reaction-time-tester/main.html', 'animation simulation html css js javascript', 'intermediate'],
+  ['Day 127', 'Particle Wave Animation', './public/Particle Wave Animation/index.html', 'css javascript', 'intermediate'],
+  ['Day 128', 'Reaction Time Test', './public/reaction-time-tester/main.html', 'animation simulation html css js javascript', 'intermediate'],
+  ['Day 129', 'YouTube Clone', './public/youtube clone/index.html', 'Html CSS', 'beginner'],
+  ['Day 130', 'Dino Game', './public/DinoGame/DinoGame-main/index.html', 'game javascript', 'beginner'],
+  ["Day 131", "Retro Highway Racer", "/public/RetroHighwayRacer/index.html", 'game javascript', 'intermediate'],
+  ['Day 132', 'Pokedex', './public/Pokedex/index.html', 'utility', 'intermediate'],
+  ['Day 133', 'Stock Market Simulator', './public/stock-market-simulator/index.html', 'simulator', 'intermediate'],
+  ['Day 134', 'Coin Scratch', './public/Coin Scratch/index.html', 'asmr game', 'intermediate'],
 ];
 
 // Alias for consistency
 const PROJECTS = PROJECT_DATA;
 console.log('PROJECTS defined:', PROJECTS.length, 'items');
+
+
+/* ============================================================
+   SOURCE CODE URL GENERATOR
+   ============================================================ */
+function getSourceUrl(url) {
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http')) return trimmed; // Already a full GitHub link
+  if (trimmed.startsWith('./')) {
+    // Converts "./public/folder/index.html" to "public/folder"
+    const folderPath = trimmed.substring(2, trimmed.lastIndexOf('/'));
+    return `https://github.com/${window.REPO_OWNER}/${window.REPO_NAME}/tree/Main/${folderPath}`;
+  }
+  return `https://github.com/${window.REPO_OWNER}/${window.REPO_NAME}/tree/Main`;
+}
+
 
 /* ============================================================
    BOOKMARK + RECENT SYSTEM
@@ -308,18 +331,24 @@ function renderGrid() {
     const isBookmarked = bookmarkedProjects.some((item) => item[0] === day);
     const tagsArray = typeof tags === 'string' ? tags.split(/\s+/).filter((t) => t) : tags;
     const tagsHTML = tagsArray.map((t) => `<span class="tag">${t}</span>`).join('');
+    const sourceUrl = getSourceUrl(url);
 
     card.innerHTML = `
             <div class="card-meta">
                 <span class="card-day">${day}</span>
-                <span class="card-category">${CATEGORY_LABEL[cat] || cat}</span>
+                <span class="card-category ${cat}">${CATEGORY_LABEL[cat] || cat}</span>
             </div>
             <div class="card-name">${name}</div>
             <div class="card-tags">${tagsHTML}</div>
             <div class="card-footer">
-                <a href="${url.trim()}" target="_blank" class="card-link open-project" data-id="${day}" rel="noopener noreferrer">
-                    View Demo <i class="fas fa-arrow-right"></i>
-                </a>
+                <div class="card-actions-left">
+                    <a href="${url.trim()}" target="_blank" class="card-link open-project" data-id="${day}" rel="noopener noreferrer">
+                        Demo <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="${sourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer">
+                        <i class="fab fa-github"></i> Code
+                    </a>
+                </div>
                 <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-id="${day}">
                     <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
                 </button>
@@ -531,6 +560,7 @@ function renderBookmarks() {
     const card = document.createElement('div');
     card.className = 'project-card';
     const tagsHTML = tags.split(' ').map((tag) => `<span class="tag">${tag}</span>`).join('');
+    const sourceUrl = getSourceUrl(url);
 
     card.innerHTML = `
             <div class="card-meta">
@@ -540,9 +570,14 @@ function renderBookmarks() {
             <div class="card-name">${name}</div>
             <div class="card-tags">${tagsHTML}</div>
             <div class="card-footer">
-                <a href="${url}" target="_blank" class="card-link open-project" data-id="${day}">
-                    View Demo <i class="fas fa-arrow-right"></i>
-                </a>
+                <div class="card-actions-left">
+                    <a href="${url}" target="_blank" class="card-link open-project" data-id="${day}">
+                        Demo <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="${sourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer">
+                        <i class="fab fa-github"></i> Code
+                    </a>
+                </div>
                 <button class="bookmark-btn active" data-id="${day}">
                     <i class="fa-solid fa-bookmark"></i>
                 </button>
@@ -577,6 +612,7 @@ function renderRecentProjects() {
     card.className = 'project-card';
     const tagsHTML = tags.split(' ').map((tag) => `<span class="tag">${tag}</span>`).join('');
     const isBookmarked = bookmarkedProjects.some((item) => item[0] === day);
+    const sourceUrl = getSourceUrl(url);
 
     card.innerHTML = `
             <div class="card-meta">
@@ -586,9 +622,14 @@ function renderRecentProjects() {
             <div class="card-name">${name}</div>
             <div class="card-tags">${tagsHTML}</div>
             <div class="card-footer">
-                <a href="${url}" target="_blank" class="card-link open-project" data-id="${day}">
-                    View Demo <i class="fas fa-arrow-right"></i>
-                </a>
+                <div class="card-actions-left">
+                    <a href="${url}" target="_blank" class="card-link open-project" data-id="${day}">
+                        Demo <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="${sourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer">
+                        <i class="fab fa-github"></i> Code
+                    </a>
+                </div>
                 <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-id="${day}">
                     <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
                 </button>
@@ -786,16 +827,27 @@ function initTheme() {
    SCROLL TO TOP
    ============================================================ */
 function initScrollBtn() {
-  const btn = document.getElementById('scrollBtn');
-  if (!btn) return;
+    const btn = document.getElementById('scrollBtn');
+    const ring = document.getElementById('ringFill');
+    if (!btn) return;
 
-  window.addEventListener('scroll', () => {
-    btn.classList.toggle('show', window.scrollY > 400);
-  });
+    const circumference = 2 * Math.PI * 22;
 
-  btn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? scrollTop / docHeight : 0;
+
+        btn.classList.toggle('show', scrollTop > 400);
+
+        if (ring) {
+            ring.style.strokeDashoffset = circumference * (1 - progress);
+        }
+    });
+
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 }
 
 /* ============================================================

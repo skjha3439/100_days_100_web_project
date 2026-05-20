@@ -1436,11 +1436,14 @@ const container = document.querySelector(".table-container");
 const totalGroups = 18; // Total groups (columns) in the periodic table
 const totalPeriods = 10; // Total periods (rows) in the periodic table
 
-// Create a grid structure for the periodic table
+// ==========================================
+// INITIALIZE PERIODIC TABLE GRID
+// ==========================================
 for (let period = 1; period <= totalPeriods; period++) {
     for (let group = 1; group <= totalGroups; group++) {
         const cell = document.createElement("div");
         cell.className = "empty"; 
+
         // Find an element matching the group and period
         const element = elements.find((el) => el.group === group && el.period === period);
         if (element) {
@@ -1483,6 +1486,335 @@ cell.dataset.boilingPoint = element.boilingPoint !== null ? element.boilingPoint
     }
 }
 
+// ==========================================
+// MODAL CONTROLS & DYNAMIC CANVAS ENGINE
+// ==========================================
+const modal = document.getElementById("element-modal");
+const closeModalBtn = document.getElementById("close-modal-btn");
+const modalNumber = document.getElementById("modal-number");
+const modalSymbol = document.getElementById("modal-symbol");
+const modalName = document.getElementById("modal-name");
+const modalCategory = document.getElementById("modal-category");
+const modalMass = document.getElementById("modal-mass");
+const modalProtons = document.getElementById("modal-protons");
+const modalNeutrons = document.getElementById("modal-neutrons");
+const modalElectrons = document.getElementById("modal-electrons");
+const shellSummaryText = document.getElementById("shell-summary-text");
+const shellsList = document.getElementById("shells-list");
+
+const canvas = document.getElementById("atomic-canvas");
+const ctx = canvas.getContext("2d");
+
+const playPauseBtn = document.getElementById("play-pause-btn");
+const playIcon = document.getElementById("play-icon");
+const pauseIcon = document.getElementById("pause-icon");
+const speedSlider = document.getElementById("speed-slider");
+const toggleOrbitsBtn = document.getElementById("toggle-orbits-btn");
+const toggleTrailsBtn = document.getElementById("toggle-trails-btn");
+
+// Global visual state variables
+let currentElement = null;
+let isPlaying = true;
+let speedMultiplier = 1;
+let showOrbits = true;
+let showTrails = true;
+let animationFrameId = null;
+
+// Physics angle values for electron positioning
+let electronAngles = [];
+let nucleusJiggleTime = 0;
+
+// Pre-generated nucleus coordinates for beautiful quantum vibratory effects
+const nucleusParticles = [];
+for (let i = 0; i < 22; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * 14; 
+    nucleusParticles.push({
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+        isProton: Math.random() > 0.5,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.04 + Math.random() * 0.06
+    });
+}
+
+// Open modal and load visualization
+function openModal(element) {
+    currentElement = element;
+    
+    // Set text elements
+    modalNumber.textContent = `#${element.number}`;
+    modalSymbol.textContent = element.symbol;
+    modalName.textContent = element.name;
+    
+    // Category Badge
+    modalCategory.className = `modal-category-badge badge-${element.category}`;
+    modalCategory.textContent = element.category.replace("-", " ");
+    
+    // Mass & Particle configuration
+    modalMass.textContent = element.mass;
+    modalProtons.textContent = element.number;
+    modalElectrons.textContent = element.number;
+    
+    const neutrons = Math.round(parseFloat(element.mass)) - element.number;
+    modalNeutrons.textContent = neutrons > 0 ? neutrons : "N/A";
+    
+    // Generate shells
+    const shellNames = ["K", "L", "M", "N", "O", "P", "Q"];
+    shellsList.innerHTML = "";
+    const config = shellConfigurations[element.number] || [element.number];
+    shellSummaryText.textContent = `Shell distribution: ${config.join(" - ")}`;
+    
+    config.forEach((count, index) => {
+        const shellName = shellNames[index] || `Shell ${index + 1}`;
+        const maxCount = 2 * Math.pow(index + 1, 2);
+        // Cap visual representation ratio for high shells to prevent tiny visible fills
+        const percentage = Math.max((count / maxCount) * 100, 10);
+        
+        const row = document.createElement("div");
+        row.className = "shell-row";
+        row.innerHTML = `
+            <div class="shell-badge">${shellName}</div>
+            <div class="shell-meter-container">
+                <div class="shell-meter-fill" style="width: ${percentage}%"></div>
+            </div>
+            <div class="shell-count">${count} e⁻</div>
+        `;
+        shellsList.appendChild(row);
+    });
+    
+    // Initialize angles for each electron shell
+    electronAngles = config.map(() => 0);
+    
+    // Display Modal
+    modal.classList.add("open");
+    document.body.style.overflow = "hidden"; // Disable background scrolling
+    
+    // Start Animation
+    resizeCanvas();
+    isPlaying = true;
+    updatePlayPauseUI();
+    
+    cancelAnimationFrame(animationFrameId);
+    animate();
+}
+
+function closeModal() {
+    modal.classList.remove("open");
+    document.body.style.overflow = ""; // Enable background scrolling
+    cancelAnimationFrame(animationFrameId);
+    currentElement = null;
+}
+
+// Adjust DPI scaling dynamically
+function resizeCanvas() {
+    if (!canvas) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.width * dpr; // Maintain perfect 1:1 aspect ratio
+    ctx.scale(dpr, dpr);
+}
+
+// core animation loop
+function animate() {
+    if (!currentElement) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    const centerX = w / 2;
+    const centerY = h / 2;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+    
+    const config = shellConfigurations[currentElement.number] || [currentElement.number];
+    const totalShells = config.length;
+    
+    // Calculate orbit rings spacing
+    const minRadius = 45;
+    const maxRadius = Math.min(centerX, centerY) - 25;
+    const radiusDiff = maxRadius - minRadius;
+    const orbitSpacing = totalShells > 1 ? radiusDiff / (totalShells - 1) : 0;
+    
+    // 1. Draw Orbit Ring paths
+    if (showOrbits) {
+        config.forEach((_, index) => {
+            const radius = minRadius + index * orbitSpacing;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]); // Soft dotted circles
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset dash state
+            
+            // Draw small shell label on the orbit (K, L, M...)
+            const shellNames = ["K", "L", "M", "N", "O", "P", "Q"];
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.font = "bold 9px Roboto, Arial, sans-serif";
+            ctx.fillText(shellNames[index] || "", centerX + radius - 4, centerY - 6);
+        });
+    }
+    
+    // 2. Draw active quantum nucleus (Protons & Neutrons jiggling)
+    nucleusJiggleTime += isPlaying ? 1 : 0;
+    
+    // Soft outer glow of the nucleus
+    const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 28);
+    glowGradient.addColorStop(0, "rgba(248, 113, 113, 0.25)");
+    glowGradient.addColorStop(0.5, "rgba(96, 165, 250, 0.15)");
+    glowGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 28, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nucleus nucleons (proton/neutron spheres cluster) jiggling organic effect
+    nucleusParticles.forEach((p) => {
+        const jiggleX = Math.sin(nucleusJiggleTime * p.speed + p.phase) * 1.5;
+        const jiggleY = Math.cos(nucleusJiggleTime * p.speed + p.phase) * 1.5;
+        ctx.beginPath();
+        ctx.arc(centerX + p.x + jiggleX, centerY + p.y + jiggleY, 4.5, 0, Math.PI * 2);
+        
+        // Red color for protons, Blue color for neutrons
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = p.isProton ? "#f87171" : "#60a5fa";
+        ctx.shadowColor = p.isProton ? "#ef4444" : "#3b82f6";
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow for efficiency
+    });
+    
+    // Draw symbol directly in the nucleus center
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px Roboto, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(currentElement.symbol, centerX, centerY);
+    
+    // 3. Draw Orbiting electrons
+    const baseAngularSpeed = 0.015;
+    
+    config.forEach((count, shellIndex) => {
+        const radius = minRadius + shellIndex * orbitSpacing;
+        
+        // Phys-based speed calculation: closer electrons speed is faster
+        const orbitalVelocity = baseAngularSpeed * (1 / Math.sqrt(shellIndex + 1)) * speedMultiplier;
+        
+        // Update angle if game is currently playing
+        if (isPlaying) {
+            electronAngles[shellIndex] += orbitalVelocity;
+        }
+        
+        const currentAngle = electronAngles[shellIndex];
+        
+        // Render each electron in this shell symmetrically
+        for (let i = 0; i < count; i++) {
+            const angleOffset = (i * 2 * Math.PI) / count;
+            const finalAngle = currentAngle + angleOffset;
+            
+            const x = centerX + radius * Math.cos(finalAngle);
+            const y = centerY + radius * Math.sin(finalAngle);
+            
+            // Draw fading trails if active
+            if (showTrails) {
+                const trailLength = 8;
+                for (let t = 1; t <= trailLength; t++) {
+                    const trailAngle = finalAngle - t * 0.04 * speedMultiplier;
+                    const tx = centerX + radius * Math.cos(trailAngle);
+                    const ty = centerY + radius * Math.sin(trailAngle);
+                    const opacity = (1 - t / trailLength) * 0.35;
+                    
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 3 * (1 - (t / trailLength) * 0.5), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(52, 211, 153, ${opacity})`;
+                    ctx.fill();
+                }
+            }
+            
+            // Draw outer glow for electrons
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = "#34d399";
+            ctx.shadowColor = "#10b981";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset shadow for efficiency
+            
+            // Highlight inner circle core
+            ctx.beginPath();
+            ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+    });
+    
+    animationFrameId = requestAnimationFrame(animate);
+}
+
+// Update Play/Pause UI Icons
+function updatePlayPauseUI() {
+    if (isPlaying) {
+        playIcon.style.display = "none";
+        pauseIcon.style.display = "block";
+    } else {
+        playIcon.style.display = "block";
+        pauseIcon.style.display = "none";
+    }
+}
+
+// ==========================================
+// WIRE UP MODAL COMPONENT EVENT LISTENERS
+// ==========================================
+closeModalBtn.addEventListener("click", closeModal);
+
+// Close modal when clicking on dark backdrop
+window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+
+// Close modal using Escape keyboard button
+window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("open")) {
+        closeModal();
+    }
+});
+
+// Play/Pause Action
+playPauseBtn.addEventListener("click", () => {
+    isPlaying = !isPlaying;
+    updatePlayPauseUI();
+});
+
+// Speed adjust slider
+speedSlider.addEventListener("input", (e) => {
+    speedMultiplier = parseFloat(e.target.value);
+});
+
+// Toggle Orbit lines
+toggleOrbitsBtn.addEventListener("click", () => {
+    showOrbits = !showOrbits;
+    toggleOrbitsBtn.classList.toggle("active", showOrbits);
+});
+
+// Toggle Trails
+toggleTrailsBtn.addEventListener("click", () => {
+    showTrails = !showTrails;
+    toggleTrailsBtn.classList.toggle("active", showTrails);
+});
+
+// Handle window resizing
+window.addEventListener("resize", () => {
+    if (currentElement) {
+        resizeCanvas();
+    }
+});
+
 //---------------Add Lanthanoids----------------
 const lanContainer = document.createElement("div");
 lanContainer.style.display = "flex";
@@ -1506,16 +1838,22 @@ elements
     .forEach(el => {
         const div = document.createElement("div");
         div.className = `element ${el.category}`;
+        div.dataset.name =
+el.name.toLowerCase();
+
+div.dataset.symbol =
+el.symbol.toLowerCase();
         div.innerHTML = `
         <div class="element-number">${el.number}</div>
         <div class="element-symbol">${el.symbol}</div>
         <div class="element-name">${el.name}</div>
         <div class="tooltip">
             ${el.name}<br/>
-            Category: ${el.category} <br/>
+            Category: ${el.category.replace("-", " ")} <br/>
             Atomic Mass: ${el.mass}
         </div>
     `;
+        div.addEventListener("click", () => openModal(el));
         lanRow.appendChild(div);
     });
 
@@ -1562,16 +1900,22 @@ elements
     .forEach(el => {
         const div = document.createElement("div");
         div.className = `element ${el.category}`;
+        div.dataset.name =
+el.name.toLowerCase();
+
+div.dataset.symbol =
+el.symbol.toLowerCase();
         div.innerHTML = `
             <div class="element-number">${el.number}</div>
             <div class="element-symbol">${el.symbol}</div>
             <div class="element-name">${el.name}</div>
             <div class="tooltip">
-            ${el.name}<br/>
-            Category: ${el.category} <br/>
-            Atomic Mass: ${el.mass}
-        </div>
-    `;
+                ${el.name}<br/>
+                Category: ${el.category.replace("-", " ")} <br/>
+                Atomic Mass: ${el.mass}
+            </div>
+        `;
+        div.addEventListener("click", () => openModal(el));
         actRow.appendChild(div);
     });
 
@@ -1595,11 +1939,12 @@ filter.addEventListener("change", () => {
     });
 });
 
-// All Categories
+// All Categories (including Post-transition Metals 'metal')
 const categories = {
     alkali: "Alkali Metals",
     "alkaline-earth": "Alkaline Earth",
     transition: "Transition Metals",
+    metal: "Post-transition Metals",
     metalloid: "Metalloids",
     nonmetal: "Non-metals",
     halogen: "Halogens",
@@ -1607,7 +1952,6 @@ const categories = {
     lanthanide: "Lanthanoids",
     actinide: "Actinides"
 };
-
 
 const legendContainer = document.querySelector(".legend");
 
