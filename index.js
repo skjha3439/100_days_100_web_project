@@ -146,7 +146,8 @@ const PROJECT_DATA = [
   ['Day 127', 'Particle Wave Animation', './public/Particle Wave Animation/index.html', 'css javascript', 'intermediate'],
   ['Day 128', 'Reaction Time Test', './public/reaction-time-tester/main.html', 'animation simulation html css js javascript', 'intermediate'],
   ['Day 129', 'YouTube Clone', './public/youtube clone/index.html', 'Html CSS', 'beginner'],
-  ['Day 130', 'Pokedex', './public/Pokedex/index.html', 'utility', 'intermediate']
+  ['Day 130', 'Dino Game', './public/DinoGame/DinoGame-main/index.html', 'game javascript', 'beginner'],
+  ['Day 131', 'Pokedex', './public/Pokedex/index.html', 'utility', 'intermediate']
 ];
 
 // Alias for consistency
@@ -332,7 +333,7 @@ function renderGrid() {
     card.innerHTML = `
             <div class="card-meta">
                 <span class="card-day">${day}</span>
-                <span class="card-category">${CATEGORY_LABEL[cat] || cat}</span>
+                <span class="card-category ${cat}">${CATEGORY_LABEL[cat] || cat}</span>
             </div>
             <div class="card-name">${name}</div>
             <div class="card-tags">${tagsHTML}</div>
