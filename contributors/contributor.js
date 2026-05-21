@@ -106,10 +106,7 @@ function saveCache(key, data) {
   );
 }
 
-function loadCache(
-  key,
-  maxAge = 1000 * 60 * 10
-) {
+function loadCache(key, maxAge = 1000 * 60 * 10) {
   const cached = localStorage.getItem(key);
 
   if (!cached) return null;
@@ -117,8 +114,7 @@ function loadCache(
   try {
     const parsed = JSON.parse(cached);
 
-    const isExpired =
-      Date.now() - parsed.timestamp > maxAge;
+    const isExpired = Date.now() - parsed.timestamp > maxAge;
 
     if (isExpired) {
       localStorage.removeItem(key);
@@ -417,28 +413,56 @@ let filteredContributors = [];
 
 async function fetchContributors() {
   const contributorsContainer = document.getElementById('contributors');
+
   const contributorCountSpan = document.getElementById('contributorCount');
 
+  const errorBox = document.getElementById('contributorsError');
+
+  const errorMessage = document.getElementById('contributorsErrorMessage');
+
+  const loading = document.getElementById('contributorsLoading');
+
+  loading.classList.remove('hidden');
+
+  errorBox.classList.add('hidden');
+
+  contributorsContainer.innerHTML = '';
+
   try {
-    const response = await fetch(
-      `https://api.github.com/repos/${window.REPO_OWNER}/${window.REPO_NAME}/contributors?per_page=100`
+    const cached = loadCache('contributors-cache');
+
+    if (cached) {
+      allContributors = cached;
+
+      filteredContributors = [...cached];
+
+      contributorCountSpan.textContent = cached.length;
+
+      renderContributors(filteredContributors);
+
+      loading.classList.add('hidden');
+
+      return;
+    }
+
+    const contributors = await githubFetch(
+      `${GITHUB_API_BASE}/repos/${window.REPO_OWNER}/${window.REPO_NAME}/contributors?per_page=100`
     );
 
-    if (!response.ok) throw new Error('Failed to fetch contributors');
+    saveCache('contributors-cache', contributors);
 
-    const contributors = await response.json();
     contributorCountSpan.textContent = contributors.length;
 
-    // Calculate total commits
     const totalCommits = contributors.reduce(
       (sum, c) => sum + c.contributions,
       0
     );
-    const totalCommitsEl = document.getElementById('totalCommits');
-    if (totalCommitsEl)
-      totalCommitsEl.textContent = totalCommits.toLocaleString();
 
-    contributorsContainer.innerHTML = '';
+    const totalCommitsEl = document.getElementById('totalCommits');
+
+    if (totalCommitsEl) {
+      totalCommitsEl.textContent = totalCommits.toLocaleString();
+    }
 
     allContributors = contributors;
 
@@ -446,10 +470,13 @@ async function fetchContributors() {
 
     renderContributors(filteredContributors);
   } catch (error) {
-    console.error('Error fetching contributors:', error);
-    if (contributorsContainer)
-      contributorsContainer.innerHTML =
-        "<p style='color: #ff4444;'>Failed to load contributors.</p>";
+    errorBox.classList.remove('hidden');
+
+    errorMessage.textContent = error.message;
+
+    contributorsContainer.innerHTML = '';
+  } finally {
+    loading.classList.add('hidden');
   }
 }
 
