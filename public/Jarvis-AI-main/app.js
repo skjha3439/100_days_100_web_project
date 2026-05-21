@@ -30,7 +30,12 @@ window.addEventListener('load', () => {
 });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
+
+if (!SpeechRecognition) {
+    alert("Speech Recognition is not supported in this browser.");
+    status.textContent = "Speech Recognition not supported";
+} else {
+    const recognition = new SpeechRecognition();
 
 recognition.onresult = (event) => {
     const currentIndex = event.resultIndex;
@@ -43,6 +48,7 @@ btn.addEventListener('click', () => {
     content.textContent = "Listening...";
     recognition.start();
 });
+}
 
 function takeCommand(message) {
     if (message.includes('hey') || message.includes('hello')) {
