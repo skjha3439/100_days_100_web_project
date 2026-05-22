@@ -100,19 +100,45 @@ function calcStrength() {
 }
 
 function updateSuggestions(){
-        if(!suggestionBox) return;
-        const suggestions = [];
-        if(passwordLength < 8) suggestions.push('Increase length to at least 8');
-        if(!uppercaseCheck.checked) suggestions.push('Include uppercase letters');
-        if(!lowercaseCheck.checked) suggestions.push('Include lowercase letters');
-        if(!numbersCheck.checked) suggestions.push('Include numbers');
-        if(!symbolsCheck.checked) suggestions.push('Include symbols');
+    if(!suggestionBox) return;
+    const hasUpper = uppercaseCheck.checked;
+    const hasLower = lowercaseCheck.checked;
+    const hasNum = numbersCheck.checked;
+    const hasSym = symbolsCheck.checked;
+    const suggestions = [];
+    const strength = (strengthText && strengthText.innerText) ? strengthText.innerText : '';
 
-        if(suggestions.length === 0){
-                suggestionBox.innerText = '';
-        } else {
-                suggestionBox.innerText = 'Suggestions: ' + suggestions.join(', ');
+    if(strength === 'Strong'){
+        suggestionBox.innerText = '';
+        return;
+    }
+
+    if(strength === 'Medium'){
+        // To reach Strong: need both upper & lower, (num || sym), and length >= 8
+        if(!(hasUpper && hasLower)){
+            if(!hasUpper) suggestions.push('Include uppercase letters');
+            if(!hasLower) suggestions.push('Include lowercase letters');
         }
+        if(!(hasNum || hasSym)){
+            suggestions.push('Include numbers or symbols');
+        }
+        if(passwordLength < 8) suggestions.push('Increase length to at least 8');
+    } else {
+        // Weak -> suggest steps to reach Medium: (hasLower||hasUpper) && (hasNum||hasSym) && length >= 6
+        if(!(hasLower || hasUpper)){
+            suggestions.push('Include lowercase or uppercase letters');
+        } else {
+            if(!hasLower) suggestions.push('Include lowercase letters');
+            if(!hasUpper) suggestions.push('Include uppercase letters');
+        }
+        if(!(hasNum || hasSym)){
+            suggestions.push('Include numbers or symbols');
+        }
+        if(passwordLength < 6) suggestions.push('Increase length to at least 6');
+    }
+
+    if(suggestions.length === 0) suggestionBox.innerText = '';
+    else suggestionBox.innerText = 'Suggestions: ' + suggestions.join(', ');
 }
 
 async function copyContent() {
