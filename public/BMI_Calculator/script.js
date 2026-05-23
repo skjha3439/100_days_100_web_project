@@ -3,7 +3,6 @@
     const themeBtn = document.getElementById("theme-toggle");
     const STORAGE_KEY = "bmi-theme";
 
-    // Resolve initial theme: saved preference → OS preference → light
     function getPreferred() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) return saved;
@@ -16,10 +15,8 @@
         document.body.classList.toggle("dark", theme === "dark");
     }
 
-    // Apply on first load (runs synchronously before paint)
     applyTheme(getPreferred());
 
-    // Toggle on click
     themeBtn.addEventListener("click", () => {
         const isDark = document.body.classList.toggle("dark");
         localStorage.setItem(STORAGE_KEY, isDark ? "dark" : "light");
@@ -37,7 +34,6 @@ const errEl = document.getElementById("error-msg");
 const resultsEl = document.getElementById("results");
 const rangeVisEl = document.getElementById("range-vis");
 
-// WHO approved BMI categories
 const CATS = [
     {
         max: 18.5,
@@ -95,15 +91,13 @@ function calcHealthyWeight(heightCm) {
     ];
 }
 
-// Map BMI value to a percentage position on the range bar (10–45 scale)
 function bmiToPercent(bmi) {
-    const MIN = 10,
-        MAX = 45;
+    const MIN = 10, MAX = 45;
     const clamped = Math.min(Math.max(bmi, MIN), MAX);
     return ((clamped - MIN) / (MAX - MIN)) * 100;
 }
 
-// setup Chart.js
+// ─── Chart.js setup ───
 const ctx = document.getElementById("bmiChart").getContext("2d");
 const bmiChart = new Chart(ctx, {
     type: "line",
@@ -148,7 +142,31 @@ const bmiChart = new Chart(ctx, {
     },
 });
 
-// Unit label updates will be shown here
+// ─── localStorage Keys ───
+const BMI_LABELS_KEY = "bmi-history-labels";
+const BMI_DATA_KEY = "bmi-history-data";
+
+// ─── Load saved history on page load ───
+(function loadHistory() {
+    const savedLabels = JSON.parse(localStorage.getItem(BMI_LABELS_KEY) || "[]");
+    const savedData = JSON.parse(localStorage.getItem(BMI_DATA_KEY) || "[]");
+    if (savedLabels.length > 0) {
+        bmiChart.data.labels = savedLabels;
+        bmiChart.data.datasets[0].data = savedData;
+        bmiChart.update();
+    }
+})();
+
+// ─── Clear History ───
+document.getElementById("clear-history").addEventListener("click", () => {
+    localStorage.removeItem(BMI_LABELS_KEY);
+    localStorage.removeItem(BMI_DATA_KEY);
+    bmiChart.data.labels = [];
+    bmiChart.data.datasets[0].data = [];
+    bmiChart.update();
+});
+
+// ─── Unit label updates ───
 heightUnitEl.addEventListener("change", () => {
     if (heightUnitEl.value === "feet") {
         heightLbl.textContent = "Height (ft/in)";
@@ -223,12 +241,10 @@ btn.addEventListener("click", () => {
         return;
     }
 
-    // Calculates BMI
     const bmi = w / Math.pow(heightCm / 100, 2);
     const bmiRounded = Math.round(bmi * 10) / 10;
     const cat = getCategory(bmi);
 
-    // Displays BMI + category
     document.getElementById("bmi-val").textContent = bmiRounded.toFixed(1);
 
     const badge = document.getElementById("cat-badge");
@@ -236,7 +252,6 @@ btn.addEventListener("click", () => {
     badge.style.background = cat.bg;
     badge.style.color = cat.color;
 
-    // Healthy weight range
     const [wLow, wHigh] = calcHealthyWeight(heightCm);
     const dispUnit = wUnit === "lb" ? "lb" : "kg";
     const mult = wUnit === "lb" ? 2.20462 : 1;
@@ -245,18 +260,16 @@ btn.addEventListener("click", () => {
 
     document.getElementById("tip-text").textContent = cat.tip;
 
-    // Shows result sections
     resultsEl.classList.remove("hidden");
     resultsEl.style.display = "grid";
 
     rangeVisEl.classList.remove("hidden");
     rangeVisEl.style.display = "block";
 
-    // Moves range pointer
     const pct = bmiToPercent(bmi);
     document.getElementById("bmi-ptr").style.left = pct + "%";
 
-    // Updates chart data
+    // ─── Update chart + save to localStorage ───
     const time = new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -266,25 +279,24 @@ btn.addEventListener("click", () => {
     bmiChart.data.datasets[0].data.push(bmiRounded);
     bmiChart.update();
 
-    // ─── Body Fat % Estimate (Deurenberg formula) ───
+    localStorage.setItem(BMI_LABELS_KEY, JSON.stringify(bmiChart.data.labels));
+    localStorage.setItem(BMI_DATA_KEY, JSON.stringify(bmiChart.data.datasets[0].data));
+
+    // ─── Body Fat % Estimate ───
     const age = parseFloat(document.getElementById("age").value);
     const gender = document.getElementById("gender").value;
     const bfSection = document.getElementById("bf-section");
 
     if (!isNaN(age) && age >= 2 && age <= 120) {
-        // Deurenberg et al. (1991): BF% = 1.20 × BMI + 0.23 × Age − 10.8 × Sex − 5.4
-        // Sex: male = 1, female = 0
         const sexFactor = gender === "male" ? 1 : 0;
         let bodyFat = 1.2 * bmi + 0.23 * age - 10.8 * sexFactor - 5.4;
         bodyFat = Math.round(bodyFat * 10) / 10;
-        bodyFat = Math.max(2, Math.min(bodyFat, 65)); // clamp to sane range
+        bodyFat = Math.max(2, Math.min(bodyFat, 65));
 
-        // Classify body fat %
         const bfCat = getBodyFatCategory(bodyFat, gender);
 
-        // Update gauge
-        const CIRCUMFERENCE = 326.73; // 2 × π × 52
-        const fraction = Math.min(bodyFat / 60, 1); // 60% = full ring
+        const CIRCUMFERENCE = 326.73;
+        const fraction = Math.min(bodyFat / 60, 1);
         const offset = CIRCUMFERENCE * (1 - fraction);
         const arc = document.getElementById("bf-arc");
         arc.style.strokeDashoffset = offset;
@@ -302,7 +314,6 @@ btn.addEventListener("click", () => {
         bfSection.classList.remove("hidden");
         bfSection.style.display = "block";
     } else {
-        // Hide if age not provided
         bfSection.classList.add("hidden");
     }
 });
@@ -312,28 +323,48 @@ function getBodyFatCategory(bf, gender) {
     const ranges =
         gender === "male"
             ? [
-                  { max: 6,  label: "Essential",  color: "#2563b0", bg: "#eff4fc",
-                    tip: "Essential fat is the minimum needed for basic physiological function." },
-                  { max: 14, label: "Athletic",   color: "#16a34a", bg: "#edf6ef",
-                    tip: "Athletic range — typical of competitive athletes with rigorous training." },
-                  { max: 18, label: "Fitness",    color: "#0d9488", bg: "#f0fdfa",
-                    tip: "Fitness range — a healthy body composition with good muscle definition." },
-                  { max: 25, label: "Average",    color: "#d97706", bg: "#fef3e2",
-                    tip: "Average range — generally healthy, but there's room for improvement via exercise." },
-                  { max: Infinity, label: "Obese", color: "#dc2626", bg: "#fef2f2",
-                    tip: "Elevated body fat — consider consulting a healthcare professional for guidance." },
-              ]
+                {
+                    max: 6, label: "Essential", color: "#2563b0", bg: "#eff4fc",
+                    tip: "Essential fat is the minimum needed for basic physiological function."
+                },
+                {
+                    max: 14, label: "Athletic", color: "#16a34a", bg: "#edf6ef",
+                    tip: "Athletic range — typical of competitive athletes with rigorous training."
+                },
+                {
+                    max: 18, label: "Fitness", color: "#0d9488", bg: "#f0fdfa",
+                    tip: "Fitness range — a healthy body composition with good muscle definition."
+                },
+                {
+                    max: 25, label: "Average", color: "#d97706", bg: "#fef3e2",
+                    tip: "Average range — generally healthy, but there's room for improvement via exercise."
+                },
+                {
+                    max: Infinity, label: "Obese", color: "#dc2626", bg: "#fef2f2",
+                    tip: "Elevated body fat — consider consulting a healthcare professional for guidance."
+                },
+            ]
             : [
-                  { max: 14, label: "Essential",  color: "#2563b0", bg: "#eff4fc",
-                    tip: "Essential fat is the minimum needed for hormonal and reproductive health." },
-                  { max: 21, label: "Athletic",   color: "#16a34a", bg: "#edf6ef",
-                    tip: "Athletic range — typical of competitive female athletes." },
-                  { max: 25, label: "Fitness",    color: "#0d9488", bg: "#f0fdfa",
-                    tip: "Fitness range — a healthy and active body composition." },
-                  { max: 32, label: "Average",    color: "#d97706", bg: "#fef3e2",
-                    tip: "Average range — generally healthy, but regular exercise can improve outcomes." },
-                  { max: Infinity, label: "Obese", color: "#dc2626", bg: "#fef2f2",
-                    tip: "Elevated body fat — consider consulting a healthcare professional for guidance." },
-              ];
+                {
+                    max: 14, label: "Essential", color: "#2563b0", bg: "#eff4fc",
+                    tip: "Essential fat is the minimum needed for hormonal and reproductive health."
+                },
+                {
+                    max: 21, label: "Athletic", color: "#16a34a", bg: "#edf6ef",
+                    tip: "Athletic range — typical of competitive female athletes."
+                },
+                {
+                    max: 25, label: "Fitness", color: "#0d9488", bg: "#f0fdfa",
+                    tip: "Fitness range — a healthy and active body composition."
+                },
+                {
+                    max: 32, label: "Average", color: "#d97706", bg: "#fef3e2",
+                    tip: "Average range — generally healthy, but regular exercise can improve outcomes."
+                },
+                {
+                    max: Infinity, label: "Obese", color: "#dc2626", bg: "#fef2f2",
+                    tip: "Elevated body fat — consider consulting a healthcare professional for guidance."
+                },
+            ];
     return ranges.find((r) => bf < r.max);
 }
