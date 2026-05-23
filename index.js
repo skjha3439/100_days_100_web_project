@@ -542,12 +542,21 @@ function renderGrid() {
   pageItems.forEach(([day, name, url, tags]) => {
     const category = getCategoryFromTags(tags, name);
     const card = document.createElement('div');
+    
+    // FIX PART 1: Add a pointer cursor so users know it's clickable
     card.className = 'project-card';
+    card.style.cursor = 'pointer'; 
+    
+    // FIX PART 2: Make the whole card clickable to open the demo in a new tab
+    card.onclick = () => window.open(url.trim(), '_blank');
+
     const isBookmarked = bookmarkedProjects.some((item) => item[0] === day);
     const tagsArray = typeof tags === 'string' ? tags.split(/\s+/).filter((t) => t) : tags;
     const tagsHTML = tagsArray.map((t) => `<span class="tag">${t}</span>`).join('');
     const sourceUrl = getSourceUrl(url);
 
+    // FIX PART 3: Add onclick="event.stopPropagation()" to the Demo, Code, and Bookmark buttons
+    // This stops the click from "bubbling up" to the main card, preventing double-opening!
     card.innerHTML = `
             <div class="card-meta">
                 <span class="card-day">${day}</span>
@@ -557,14 +566,14 @@ function renderGrid() {
             <div class="card-tags">${tagsHTML}</div>
             <div class="card-footer">
                 <div class="card-actions-left">
-                    <a href="${url.trim()}" target="_blank" class="card-link open-project" data-id="${day}" rel="noopener noreferrer">
+                    <a href="${url.trim()}" target="_blank" class="card-link open-project" data-id="${day}" rel="noopener noreferrer" onclick="event.stopPropagation()">
                         Demo <i class="fas fa-arrow-right"></i>
                     </a>
-                    <a href="${sourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer">
+                    <a href="${sourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer" onclick="event.stopPropagation()">
                         <i class="fab fa-github"></i> Code
                     </a>
                 </div>
-                <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-id="${day}">
+                <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-id="${day}" onclick="event.stopPropagation()">
                     <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
                 </button>
             </div>
