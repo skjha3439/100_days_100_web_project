@@ -1297,16 +1297,32 @@ window.clearAllTechFilters = clearAllTechFilters;
   const canvas = document.getElementById('particleCanvas');
   const ctx = canvas.getContext('2d');
   let W, H, particles = [];
-  const N = 60;
+  const minParticles = 30;
+  const maxParticles = 120;
+  const areaPerParticle = 26000;
+  let particleCount = 60;
+  let linkDistance = 120;
+  let dpr = 1;
 
   function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    particleCount = Math.min(
+      maxParticles,
+      Math.max(minParticles, Math.round((W * H) / areaPerParticle))
+    );
+    linkDistance = Math.max(90, Math.min(150, Math.round(Math.min(W, H) / 6)));
   }
 
   function init() {
     particles = [];
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -1326,16 +1342,16 @@ window.clearAllTechFilters = clearAllTechFilters;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
     });
-    for (let i = 0; i < N; i++) {
-      for (let j = i + 1; j < N; j++) {
+    for (let i = 0; i < particleCount; i++) {
+      for (let j = i + 1; j < particleCount; j++) {
         const dx = particles[i].x - particles[j].x;
         const dy = particles[i].y - particles[j].y;
         const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 120) {
+        if (d < linkDistance) {
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(59,130,246,${(1 - d / 120) * 0.35})`;
+          ctx.strokeStyle = `rgba(59,130,246,${(1 - d / linkDistance) * 0.35})`;
           ctx.lineWidth = 1;
           ctx.stroke();
         }
@@ -1350,7 +1366,17 @@ window.clearAllTechFilters = clearAllTechFilters;
     requestAnimationFrame(draw);
   }
 
-  window.addEventListener('resize', () => { resize(); init(); });
+  let resizeFrame = null;
+  const handleResize = () => {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = null;
+      resize();
+      init();
+    });
+  };
+
+  window.addEventListener('resize', handleResize);
   resize(); init(); draw();
 })();
 
