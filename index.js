@@ -478,13 +478,14 @@ let activeFilter = 'all';
 let searchQuery = '';
 let sortOption = 'default';
 let techStackFilter = 'all';
+let difficultyFilter = 'all';
 
 function renderGrid() {
   const grid = document.getElementById('projectGrid');
   const noResults = document.getElementById('noResults');
   if (!grid) return;
 
-  const filtered = PROJECTS.filter(([day, name, url, tags]) => {
+  const filtered = PROJECTS.filter(([day, name, url, tags, difficulty = '']) => {
     // Category filter
     const category = getCategoryFromTags(tags, name);
     const targetCategory = FILTER_CATEGORY_MAP[activeFilter] || 'all';
@@ -505,7 +506,13 @@ function renderGrid() {
       matchesTech = tagStr.includes(techStackFilter.toLowerCase());
     }
 
-    return matchesFilter && matchesSearch && matchesTech;
+    // Difficulty filter
+    let matchesDifficulty = true;
+    if (difficultyFilter && difficultyFilter !== 'all') {
+      matchesDifficulty = (difficulty || '').toLowerCase() === difficultyFilter.toLowerCase();
+    }
+
+    return matchesFilter && matchesSearch && matchesTech && matchesDifficulty;
   });
 
   // Apply sorting
@@ -988,6 +995,16 @@ function initSearch() {
   if (techStack) {
     techStack.addEventListener('change', () => {
       techStackFilter = techStack.value;
+      currentPage = 1;
+      renderGrid();
+    });
+  }
+
+  // Difficulty dropdown filter listener
+  const diffFilterElement = document.getElementById('difficultyFilter');
+  if (diffFilterElement) {
+    diffFilterElement.addEventListener('change', () => {
+      difficultyFilter = diffFilterElement.value;
       currentPage = 1;
       renderGrid();
     });
