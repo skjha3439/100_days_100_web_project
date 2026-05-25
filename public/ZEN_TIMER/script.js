@@ -83,25 +83,29 @@ function updateStreak() {
     const stats = loadStats();
     const today = new Date().toDateString();
     const lastDate = stats.lastActiveDate;
-    
+
+    // Only update streak if user hasn't been counted today already
     if (lastDate !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         if (lastDate === yesterday.toDateString()) {
+            // Used app yesterday — keep the streak going
             stats.currentStreak += 1;
-        } else if (lastDate !== today) {
+        } else {
+            // Missed one or more days — reset streak to 1
             stats.currentStreak = 1;
         }
-        
+
+        // Update best streak if current is higher
         if (stats.currentStreak > stats.bestStreak) {
             stats.bestStreak = stats.currentStreak;
         }
-        
+
         stats.lastActiveDate = today;
         saveStats(stats);
     }
-    
+
     streakCount.textContent = stats.currentStreak;
 }
 
