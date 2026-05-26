@@ -314,8 +314,13 @@ if (savePdfBtn) {
   savePdfBtn.addEventListener('click', () => saveAsPDF());
 }
 
-// Load saved theme if present
+// --- Page Initialisation ---
+// Set Home tab as active and apply default/saved theme on load
+showHome();
+
 try {
   const saved = localStorage.getItem('todo-theme');
-  if (saved) applyTheme(saved);
-} catch (e) { }
+  applyTheme(saved || 'theme1'); // fallback to theme1 if nothing saved
+} catch (e) {
+  applyTheme('theme1');
+}

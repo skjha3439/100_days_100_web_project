@@ -20,9 +20,13 @@
   --page-bg-mid: #0f122a;
   --page-bg-end: #080a1e;
 
+  /* Glass panel base — overridden per theme */
   --glass-bg: rgba(18, 32, 58, 0.70);
   --glass-border: rgba(255, 255, 255, 0.10);
   --glass-shadow: 0 24px 60px rgba(5, 9, 25, 0.40);
+
+  /* Hero / input-panel tint — shifts with each theme */
+  --hero-tint: rgba(28, 20, 70, 0.72);
 
   --text-primary: #f7f8ff;
   --text-muted: rgba(247, 249, 255, 0.65);
@@ -209,6 +213,13 @@ header {
   background: rgba(255, 255, 255, 0.12);
 }
 
+/* Active nav tab — set by JS when switching Home / Documents */
+.navbar a.active {
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.08);
+}
+
 .theme-label {
   font-size: 13px;
   font-weight: 600;
@@ -255,6 +266,14 @@ header {
   box-shadow: 0 0 24px rgba(255, 255, 255, 0.15);
 }
 
+/* Active theme swatch — set by JS via applyTheme() */
+.theme-btn.active {
+  transform: scale(1.15);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 20px rgba(255, 255, 255, 0.20);
+  outline: none;
+}
+
 /* ---------- Main Layout ---------- */
 main {
   position: relative;
@@ -279,12 +298,13 @@ section {
   text-align: center;
   width: 100%;
   padding: 36px 24px 28px;
-  background: var(--glass-bg);
+  background: var(--hero-tint);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-radius: 28px;
   box-shadow: var(--glass-shadow);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .hero-badge {
@@ -298,7 +318,8 @@ section {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-bottom: 12px;
-  border: 1px solid rgba(124, 99, 255, 0.25);
+  border: 1px solid var(--accent-soft);
+  transition: background var(--transition), color var(--transition);
 }
 
 .heading {
@@ -359,13 +380,14 @@ section {
 /* ---------- Input Panel ---------- */
 .input-panel {
   width: 100%;
-  background: var(--glass-bg);
+  background: var(--hero-tint);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-radius: 24px;
   padding: 20px 24px;
   box-shadow: var(--glass-shadow);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .input-group {
@@ -1015,7 +1037,11 @@ section {
   --page-bg-mid: #0f122a;
   --page-bg-end: #080a1e;
   --accent: #7c63ff;
+  --accent-soft: rgba(124, 99, 255, 0.18);
   --accent-gradient: linear-gradient(135deg, #7c63ff, #4f8dff);
+  --glass-bg: rgba(18, 32, 58, 0.70);
+  --glass-border: rgba(124, 99, 255, 0.15);
+  --hero-tint: rgba(28, 20, 70, 0.72);
 }
 
 .theme2 {
@@ -1023,7 +1049,11 @@ section {
   --page-bg-mid: #0a3d62;
   --page-bg-end: #001219;
   --accent: #4f8dff;
+  --accent-soft: rgba(79, 141, 255, 0.18);
   --accent-gradient: linear-gradient(135deg, #4f8dff, #38bdf8);
+  --glass-bg: rgba(6, 30, 55, 0.72);
+  --glass-border: rgba(79, 141, 255, 0.18);
+  --hero-tint: rgba(8, 38, 70, 0.75);
 }
 
 .theme3 {
@@ -1031,7 +1061,11 @@ section {
   --page-bg-mid: #14532d;
   --page-bg-end: #022c22;
   --accent: #14b8a6;
+  --accent-soft: rgba(20, 184, 166, 0.18);
   --accent-gradient: linear-gradient(135deg, #14b8a6, #22c55e);
+  --glass-bg: rgba(5, 40, 22, 0.72);
+  --glass-border: rgba(20, 184, 166, 0.18);
+  --hero-tint: rgba(5, 50, 28, 0.76);
 }
 
 .theme4 {
@@ -1039,7 +1073,11 @@ section {
   --page-bg-mid: #9f4d21;
   --page-bg-end: #cb550c;
   --accent: #ffb86b;
+  --accent-soft: rgba(255, 184, 107, 0.18);
   --accent-gradient: linear-gradient(135deg, #ffb86b, #f59e0b);
+  --glass-bg: rgba(90, 35, 8, 0.72);
+  --glass-border: rgba(255, 184, 107, 0.20);
+  --hero-tint: rgba(110, 42, 6, 0.75);
 }
 
 .theme5 {
@@ -1047,5 +1085,9 @@ section {
   --page-bg-mid: #7f1d1d;
   --page-bg-end: #cb0808;
   --accent: #ef4444;
+  --accent-soft: rgba(239, 68, 68, 0.18);
   --accent-gradient: linear-gradient(135deg, #ef4444, #f97316);
+  --glass-bg: rgba(90, 14, 14, 0.72);
+  --glass-border: rgba(239, 68, 68, 0.22);
+  --hero-tint: rgba(110, 10, 10, 0.76);
 }
