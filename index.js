@@ -241,6 +241,7 @@ const PROJECT_DATA = [
   ['Day 174', 'Unit Kitchen', './public/Unit-Kitchen/index.html', ['html', 'css', 'javascript', 'game'], 'intermediate'],
   ['Day 175', 'Fruit Slice game', './public/fruitslice/index.html', ['html', 'css', 'javascript', 'game'], 'intermediate'],
   ['Day 176', 'SVG Path Builder', './public/SVGPathBuilder/index.html', ['html', 'css', 'javascript'], 'intermediate'],
+   ['Day 177', 'Bubble sort', './public/bubblegame/index.html', ['html', 'css', 'javascript'], 'intermediate'],
 
 ];
 const PROJECTS = PROJECT_DATA;
