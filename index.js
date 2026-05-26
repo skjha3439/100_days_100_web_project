@@ -609,6 +609,9 @@ const PROJECT_DESCRIPTIONS = {
   "Unit Kitchen":
     "Kitchen-focused converter simplifying ingredient and measurement transformations. Practical everyday utility.",
 
+  "Focus Timer":
+    "A minimal Pomodoro-style productivity timer to boost focus with custom work and break intervals. Built with React, TypeScript and Tailwind CSS.",
+
 };
 
 /* ============================================================

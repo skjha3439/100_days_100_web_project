@@ -1218,5 +1218,12 @@
     "./public/SVGPathBuilder/index.html",
     ["html", "css", "javascript"],
     "intermediate"
+  ],
+  [
+    "Day 177",
+    "Focus Timer",
+    "./public/focustimer/index.html",
+    ["tool", "productivity", "javascript"],
+    "intermediate"
   ]
 ]
