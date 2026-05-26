@@ -2107,3 +2107,73 @@ select {
     gap: 12px;
   }
 }
+
+.project-back-button {
+  position: fixed;
+  left: 18px;
+  top: 18px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 99, 255, 0.14),
+    rgba(79, 141, 255, 0.1)
+  );
+  color: #fff;
+  text-decoration: none;
+  z-index: 9999;
+  font-weight: 700;
+  font-family: Inter, system-ui, sans-serif;
+  box-shadow: 0 8px 20px rgba(12, 18, 40, 0.35);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.project-back-button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(
+    90deg,
+    rgba(124, 99, 255, 0.22),
+    rgba(79, 141, 255, 0.18)
+  );
+}
+
+/* In your existing sidebar-footer section, add/replace: */
+
+.sidebar-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all var(--transition);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+}
+.sidebar-back-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* Compact mode: icon-only, same as footer-btn */
+.sidebar.compact .sidebar-back-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  font-size: 0;
+  gap: 0;
+  align-self: center;
+  margin-bottom: 4px;
+  border-bottom: none;
+}
+.sidebar.compact .sidebar-back-btn svg {
+  width: 18px;
+  height: 18px;
+}
