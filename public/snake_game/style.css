@@ -258,7 +258,6 @@ canvas {
     padding: 15px 0;
     font-size: 1rem;
   }
-}
 /* Improve mobile responsiveness */
 @media screen and (max-width: 500px) {
   .wrapper {
@@ -299,3 +298,122 @@ canvas {
   to { top: 200%; }
 }
 
+/* ========== ADD MOBILE CONTROLS CSS AT THE VERY BOTTOM ========== */
+/* ========== MOBILE TOUCH CONTROLS (T-Shape) ========== */
+.mobile-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 80px;
+  backdrop-filter: blur(10px);
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dpad-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.top-row {
+  margin-bottom: 0;
+}
+
+.bottom-row {
+  gap: 20px;
+}
+
+.dpad-btn {
+  width: 70px;
+  height: 70px;
+  font-size: 32px;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid #00ff41;
+  border-radius: 50%;
+  color: #00ff41;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  font-family: monospace;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.dpad-btn:active {
+  transform: scale(0.92);
+  background: #00ff41;
+  color: #000;
+  box-shadow: 0 0 20px #00ff41;
+}
+
+/* Show only on mobile/tablet */
+@media (max-width: 768px) {
+  .mobile-controls {
+    display: flex;
+  }
+  
+  .dpad-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+  
+  .dpad-row {
+    gap: 15px;
+  }
+  
+  .bottom-row {
+    gap: 15px;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .mobile-controls {
+    padding: 10px;
+  }
+  
+  .dpad-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 24px;
+  }
+  
+  .dpad-row {
+    gap: 12px;
+  }
+  
+  .bottom-row {
+    gap: 12px;
+  }
+}
+
+/* Prevent canvas context menu and scrolling on long press */
+canvas {
+  touch-action: none;
+}
+
+/* Add bottom padding to body on mobile */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 100px;
+  }
+  
+  .canvas-wrapper {
+    margin-bottom: 10px;
+  }
+}
