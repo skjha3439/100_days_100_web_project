@@ -989,8 +989,9 @@ section {
 
 @media (max-width: 480px) {
   header {
-    padding: 10px 10px 0;
+    padding: 65px 10px 16px 10px;
   }
+
 
   .navbar {
     flex-direction: column;
