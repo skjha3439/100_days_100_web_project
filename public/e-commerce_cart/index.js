@@ -174,3 +174,32 @@ function updateTotal()
 
 }
 
+const buyBtn = document.querySelector('.btn-buy');
+const checkoutModal = document.querySelector('.checkout-modal');
+const closeCheckout = document.querySelector('.close-checkout');
+const submitOrder = document.querySelector('#submit-order');
+
+buyBtn.addEventListener('click', () => {
+  checkoutModal.style.display = 'flex';
+});
+
+closeCheckout.addEventListener('click', () => {
+  checkoutModal.style.display = 'none';
+});
+
+submitOrder.addEventListener('click', () => {
+
+  const fullName = document.querySelector('#full-name').value;
+  const address = document.querySelector('#address').value;
+  const phone = document.querySelector('#phone').value;
+  const payment = document.querySelector('#payment-method').value;
+
+  if(fullName === '' || address === '' || phone === '' || payment === ''){
+    alert('Please fill all fields');
+    return;
+  }
+
+  alert('Order placed successfully!');
+
+  checkoutModal.style.display = 'none';
+});
