@@ -263,3 +263,18 @@ searchInput.addEventListener('keyup', () => {
   }
 
 });
+const submitOrder = document.querySelector('#submit-order');
+const clearCartBtn = document.querySelector('.clear-cart-btn');
+clearCartBtn.addEventListener('click', () => {
+
+  const cartContent = document.querySelector('.cart-content');
+
+  cartContent.innerHTML = '';
+
+  itemList = [];
+
+  localStorage.removeItem("cartItems");
+
+  updateTotal();
+
+});
