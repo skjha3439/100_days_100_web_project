@@ -26,6 +26,21 @@ h3 {
   color: #666;
 }
 
+.start-btn {
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  background-color: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.start-btn:hover {
+  background-color: #16a34a;
+  transform: scale(1.05);
+}
+
 /* ----- Buttons ----- */
 .btn-container {
   display: flex;
