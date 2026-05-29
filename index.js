@@ -1581,6 +1581,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navButtons = document.getElementById('navButtons');
 
     if (!menuToggle || !navButtons) return;
+    if (menuToggle.dataset.mobileNavBound === 'true') return;
+    menuToggle.dataset.mobileNavBound = 'true';
 
     const closeMenu = () => {
       menuToggle.classList.remove('active');
@@ -1588,11 +1590,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       menuToggle.setAttribute('aria-expanded', 'false');
     };
 
+    const openMenu = () => {
+      menuToggle.classList.add('active');
+      navButtons.classList.add('active');
+      menuToggle.setAttribute('aria-expanded', 'true');
+      const firstLink = navButtons.querySelector('a, button');
+      firstLink?.focus({ preventScroll: true });
+    };
+
     menuToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = navButtons.classList.toggle('active');
-      menuToggle.classList.toggle('active', isOpen);
-      menuToggle.setAttribute('aria-expanded', String(isOpen));
+      if (navButtons.classList.contains('active')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
     });
 
     document.addEventListener('click', (e) => {
