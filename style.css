@@ -1,42 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700&display=swap');
 
-:root {
-  --bg-primary: #0b0d0f;
-  --bg-elevated: #111315;
-  --bg-surface: #161a1e;
-
-  --text-primary: #f0f4f8;
-  --text-secondary: #8b97a8;
-  --text-muted: #4a5568;
-
-  --accent: #3b82f6;
-  --accent-dim: rgba(59, 130, 246, 0.1);
-  --accent-hover: #60a5fa;
-
-  --border: #1b1f24;
-  --border-hover: #2a3038;
-  --border-accent: rgba(59, 130, 246, 0.35);
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --t: all 0.2s var(--ease);
+/* ============================================================
+   CORE THEME CUSTOM PROPERTIES (Fixes Issue #4359)
+   ============================================================ */
+:root, [data-theme="dark"] {
+  --bg-primary: #050505;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --accent-color: #00ff88;
+  --accent-glow: rgba(0, 255, 136, 0.3);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --gradient-1: linear-gradient(135deg, #00ff88, #00cfff);
+  --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.light-mode {
+[data-theme="light"] {
   --bg-primary: #f4f6f9;
-  --bg-elevated: #ffffff;
-  --bg-surface: #eef1f6;
+
   --text-primary: #0d1117;
-  --text-secondary: #4a5568;
-  --text-muted: #9aa5b4;
-  --border: #dde1e8;
-  --border-hover: #c4cad4;
-  --accent: #2563eb;
-  --accent-dim: rgba(37, 99, 235, 0.08);
-  --accent-hover: #3b82f6;
-  --border-accent: rgba(37, 99, 235, 0.3);
+  --text-secondary: rgba(13, 17, 23, 0.65);
+  --accent-color: #008f4c; /* Darker neon green for clear text visibility on light backgrounds */
+  --accent-glow: rgba(0, 143, 76, 0.15);
+  --glass-bg: rgba(0, 0, 0, 0.03);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --gradient-1: linear-gradient(135deg, #008f4c, #007699);
 }
 
 /* ============================================================
@@ -204,7 +192,7 @@ body > *:not(.ambient):not(.noise-layer) {
     transition: var(--t);
 }
 
-body.light-mode .navbar {
+[data-theme="light"] .navbar {
   background: rgba(244, 246, 249, 0.92);
 }
 
@@ -1427,7 +1415,7 @@ body.light-mode .navbar {
         overflow-y: auto !important;
     }
 
-    body.light-mode .nav-buttons.mobile-drawer-layer {
+    [data-theme="light"] .nav-buttons.mobile-drawer-layer {
         background-color: #f4f6f9 !important;
     }
 
@@ -1767,7 +1755,7 @@ html {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
-body.light-mode .pagination-controls button.page-num.active {
+[data-theme="light"] .pagination-controls button.page-num.active {
   color: #ffffff !important;
   background: var(--accent);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
@@ -1880,8 +1868,8 @@ body.light-mode .pagination-controls button.page-num.active {
 /* ============================================================
    THEME TRANSITION REPAINT GUARD
    ============================================================ */
-body.theme-transitioning,
-body.theme-transitioning * {
+[data-theme-transitioning],
+[data-theme-transitioning] * {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     transition-duration: 0.2s !important;
@@ -1889,31 +1877,31 @@ body.theme-transitioning * {
 
 /* ============================================================
    LIGHT-MODE OVERRIDES
-   Applied only when body.light-mode is active to replace hard
+   Applied only when [data-theme="light"] is active to replace hard
    dark-mode gradients/backgrounds with light-friendly variants.
    ============================================================ */
-body.light-mode .hero-terminal {
+ [data-theme="light"] .hero-terminal{
     filter: invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.9);
     opacity: 0.6;
     mix-blend-mode: multiply;
     background: transparent;
 }
 
-body.light-mode::before,
-body.light-mode::after,
-body.light-mode .ambient-left::before,
-body.light-mode .ambient-right::before,
-body.light-mode .noise-layer {
+[data-theme="light"]::before,
+[data-theme="light"]::after,
+[data-theme="light"] .ambient-left::before,
+[data-theme="light"] .ambient-right::before,
+[data-theme="light"] .noise-layer {
     mix-blend-mode: multiply;
     opacity: 0.15;
 }
 
-body.light-mode .stats-strip {
+[data-theme="light"] .stats-strip {
     background: rgba(255, 255, 255, 0.85);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 18px 60px rgba(0, 0, 0, 0.02);
 }
 
-body.light-mode .brand-mark {
+[data-theme="light"] .brand-mark {
     background: linear-gradient(180deg, rgba(59, 130, 246, 0.15), rgba(255, 255, 255, 0.9));
     border: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -1949,4 +1937,48 @@ footer,
 footer p, 
 footer a {
     color: #575757 !important;
+}
+/* ============================================================
+   THEME TRANSITION REPAINT GUARD
+   ============================================================ */
+[data-theme-transitioning],
+[data-theme-transitioning] * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important; /* Disables transitions instantly to eliminate performance stutter */
+}
+
+/* ============================================================
+   LIGHT-MODE SPECIFIC CORRECTIONS
+   ============================================================ */
+[data-theme="light"] .pagination-controls button.page-num.active {
+  color: #ffffff !important;
+  background: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(0, 143, 76, 0.25);
+}
+
+[data-theme="light"] .hero-terminal {
+    filter: invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.9);
+    opacity: 0.15;
+    mix-blend-mode: multiply;
+}
+
+[data-theme="light"] .stats-strip {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 18px 60px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .filter-label {
+  color: var(--accent-color);
+}
+
+[data-theme="light"] .filter-btn {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+[data-theme="light"] .filter-btn:hover,
+[data-theme="light"] .filter-btn.active {
+  background: var(--accent-color);
+  color: #fff;
 }
