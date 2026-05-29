@@ -341,3 +341,64 @@ if(darkModeBtn){
   });
 
 }
+// Quick View Popup
+
+const quickViewModal =
+  document.querySelector('.quick-view-modal');
+
+const quickViewImg =
+  document.querySelector('#quick-view-img');
+
+const quickViewTitle =
+  document.querySelector('#quick-view-title');
+
+const quickViewPrice =
+  document.querySelector('#quick-view-price');
+
+const closeQuickView =
+  document.querySelector('.close-quick-view');
+
+const quickViewImages =
+  document.querySelectorAll('.shoe-img');
+
+quickViewImages.forEach((image) => {
+
+  image.addEventListener('click', () => {
+
+    const shoeBox = image.closest('.shoe-box');
+
+    const title =
+      shoeBox.querySelector('.shoe-title').innerText;
+
+    const price =
+      shoeBox.querySelector('.shoe-price').innerText;
+
+    const imgSrc = image.src;
+
+    quickViewImg.src = imgSrc;
+
+    quickViewTitle.innerText = title;
+
+    quickViewPrice.innerText = price;
+
+    quickViewModal.style.display = 'flex';
+
+  });
+
+});
+
+closeQuickView.addEventListener('click', () => {
+
+  quickViewModal.style.display = 'none';
+
+});
+
+window.addEventListener('click', (e) => {
+
+  if(e.target === quickViewModal){
+
+    quickViewModal.style.display = 'none';
+
+  }
+
+});
