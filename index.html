@@ -27,7 +27,7 @@
     <div class="noise-layer" aria-hidden="true"></div>
 
     <!-- ── NAVBAR ──────────────────────────────────────────── -->
-    <nav class="navbar" id="navbar">
+  <nav class="navbar" id="navbar" role="navigation" aria-label="Main Navigation">
         <a class="navbar-brand" href="index.html" style="text-decoration:none;">
             <span class="brand-mark" aria-hidden="true">100</span>
             <span class="brand-copy">
@@ -183,7 +183,13 @@
           </div>
         </div>
 
-        <div class="project-grid" id="projectGrid"></div>
+       <div
+  class="project-grid"
+  id="projectGrid"
+  role="main"
+  aria-live="polite"
+  aria-atomic="true"
+></div>
 
         <div class="no-results" id="noResults">
           <i class="fas fa-search"></i>
