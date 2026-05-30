@@ -1,708 +1,1001 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🚗 Road Rush</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:wght@400;600;800&display=swap');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traffic Signal Simulation Game</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap");
 
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#0a0a0a;font-family:'Exo 2',sans-serif;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh;}
-
-#wrap{position:relative;width:520px;height:100vh;max-height:820px;overflow:hidden;}
-canvas{display:block;width:100%;height:100%;}
-
-/* HUD */
-#hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5;}
-.hud-box{background:rgba(0,0,0,0.72);border:1px solid rgba(255,220,0,0.4);border-radius:8px;padding:6px 13px;backdrop-filter:blur(4px);}
-.hud-lbl{font-size:9px;letter-spacing:2px;color:#aaa;text-transform:uppercase;}
-.hud-val{font-family:'Russo One',sans-serif;font-size:20px;color:#fff;line-height:1.1;}
-
-/* Signal HUD */
-#sigHud{position:absolute;top:50%;right:10px;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.sig-wrap{background:rgba(0,0,0,0.8);border:1.5px solid rgba(255,220,0,0.35);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:5px;}
-.sig-dot{width:22px;height:22px;border-radius:50%;background:#1a1a1a;transition:background .3s,box-shadow .3s;}
-.sig-dot.on-red   {background:#ff2222;box-shadow:0 0 14px #ff2222;}
-.sig-dot.on-yellow{background:#ffcc00;box-shadow:0 0 14px #ffcc00;}
-.sig-dot.on-green {background:#00ff55;box-shadow:0 0 14px #00ff55;}
-#sigLabel{font-family:'Russo One',sans-serif;font-size:10px;letter-spacing:1px;color:#fff;text-align:center;}
-#sigTimer{font-family:'Russo One',sans-serif;font-size:13px;color:#ffcc00;}
-.bar-wrap{width:22px;height:60px;background:#111;border-radius:4px;border:1px solid #333;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
-#sigBar{width:100%;border-radius:4px;transition:height .15s linear,background .3s;}
-
-/* Speed-o */
-#speedo{position:absolute;bottom:14px;left:12px;z-index:5;}
-.spd-ring{width:80px;height:80px;position:relative;}
-.spd-ring canvas{width:80px;height:80px;}
-#spdNum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-#spdVal{font-family:'Russo One',sans-serif;font-size:18px;color:#fff;line-height:1;}
-#spdUnit{font-size:9px;color:#aaa;letter-spacing:1px;}
-
-/* Controls hint */
-#ctrlHint{position:absolute;bottom:14px;right:10px;z-index:5;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px;font-size:11px;color:#888;line-height:1.7;}
-.key{display:inline-block;background:#222;border:1px solid #444;border-radius:3px;padding:1px 5px;font-size:10px;color:#ccc;}
-
-/* Overlay */
-#overlay{position:absolute;inset:0;background:rgba(0,0,0,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;backdrop-filter:blur(6px);}
-#overlay h1{font-family:'Russo One',sans-serif;font-size:42px;color:#ffcc00;text-shadow:0 0 30px #ffcc00;letter-spacing:3px;margin-bottom:4px;}
-#overlay .tagline{color:#888;font-size:13px;letter-spacing:2px;margin-bottom:28px;}
-.ov-stats{display:flex;gap:16px;margin-bottom:26px;}
-.ov-stat{background:rgba(255,255,255,0.05);border:1px solid rgba(255,204,0,0.25);border-radius:8px;padding:10px 16px;text-align:center;}
-.ov-stat .v{font-family:'Russo One',sans-serif;font-size:24px;color:#fff;}
-.ov-stat .l{font-size:10px;color:#666;letter-spacing:1px;}
-#playBtn{font-family:'Russo One',sans-serif;font-size:15px;letter-spacing:3px;padding:14px 42px;border:2px solid #ffcc00;border-radius:8px;background:transparent;color:#ffcc00;cursor:pointer;transition:all .2s;}
-#playBtn:hover{background:#ffcc00;color:#000;box-shadow:0 0 28px #ffcc00;}
-
-/* Penalty flash */
-#penFlash{position:absolute;inset:0;pointer-events:none;z-index:15;transition:opacity .15s;}
-
-/* Red light warning */
-#rlWarn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Russo One',sans-serif;font-size:28px;color:#ff2222;text-shadow:0 0 20px #ff2222;letter-spacing:3px;z-index:16;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center;}
-</style>
-</head>
-<body>
-<div id="wrap">
-  <canvas id="c"></canvas>
-
-  <!-- HUD -->
-  <div id="hud">
-    <div class="hud-box">
-      <div class="hud-lbl">Score</div>
-      <div class="hud-val" id="hScore">0</div>
-    </div>
-    <div class="hud-box">
-      <div class="hud-lbl">Time</div>
-      <div class="hud-val" id="hTime">60</div>
-    </div>
-    <div class="hud-box">
-      <div class="hud-lbl">Level</div>
-      <div class="hud-val" id="hLevel">1</div>
-    </div>
-  </div>
-
-  <!-- Signal -->
-  <div id="sigHud">
-    <div class="sig-wrap">
-      <div class="sig-dot on-red" id="dRed"></div>
-      <div class="sig-dot" id="dYellow"></div>
-      <div class="sig-dot" id="dGreen"></div>
-    </div>
-    <div class="bar-wrap"><div id="sigBar" style="height:100%;background:#ff2222"></div></div>
-    <div id="sigTimer">5s</div>
-    <div id="sigLabel">RED</div>
-  </div>
-
-  <!-- Speedo -->
-  <div id="speedo">
-    <div class="spd-ring">
-      <canvas id="spdCanvas" width="80" height="80"></canvas>
-      <div id="spdNum"><span id="spdVal">0</span><span id="spdUnit">KM/H</span></div>
-    </div>
-  </div>
-
-  <!-- Controls hint -->
-  <div id="ctrlHint">
-    <span class="key">↑</span> Accelerate<br>
-    <span class="key">↓</span> Brake<br>
-    <span class="key">←</span><span class="key">→</span> Lane change
-  </div>
-
-  <!-- Penalty flash -->
-  <div id="penFlash" style="background:rgba(255,0,0,0);opacity:1"></div>
-  <div id="rlWarn">🚨 RED LIGHT!<br><span style="font-size:16px">PENALTY!</span></div>
-
-  <!-- Overlay -->
-  <div id="overlay">
-    <h1>ROAD RUSH</h1>
-    <div class="tagline">DRIVE · DODGE · SURVIVE</div>
-    <div class="ov-stats" id="ovStats" style="display:none">
-      <div class="ov-stat"><div class="v" id="ovScore">0</div><div class="l">SCORE</div></div>
-      <div class="ov-stat"><div class="v" id="ovDist">0</div><div class="l">METERS</div></div>
-      <div class="ov-stat"><div class="v" id="ovPen">0</div><div class="l">PENALTIES</div></div>
-    </div>
-    <button id="playBtn" onclick="startGame()">START RACE</button>
-  </div>
-</div>
-
-<script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const wrap = document.getElementById('wrap');
-
-// ── Canvas size ──────────────────────────────────────────────────────────────
-let W, H;
-function resize(){
-  const r = wrap.getBoundingClientRect();
-  W = canvas.width  = r.width;
-  H = canvas.height = r.height;
-}
-resize();
-window.addEventListener('resize', resize);
-
-// ── Constants ────────────────────────────────────────────────────────────────
-const LANES = 4;
-let ROAD_L, ROAD_R, LANE_W;
-const CAR_W = 32, CAR_H = 52;
-
-function calcRoad(){
-  ROAD_L = W * 0.12;
-  ROAD_R = W * 0.88;
-  LANE_W = (ROAD_R - ROAD_L) / LANES;
-}
-
-function laneX(l){ return ROAD_L + l * LANE_W + LANE_W/2; }
-
-// ── State ────────────────────────────────────────────────────────────────────
-let gameRunning = false;
-let score = 0, timeLeft = 60, level = 1, distance = 0, penalties = 0;
-let roadOffset = 0;
-let lastTime = 0, raf;
-
-// Player
-let player = {};
-function resetPlayer(){
-  player = {
-    lane: 1,
-    x: 0, y: 0,         // set in draw
-    targetLane: 1,
-    speed: 0,            // pixels/sec road scroll speed
-    maxSpeed: 320,
-    accel: 180,
-    brakeForce: 380,
-    friction: 60,
-    laneAnim: 0,         // 0..1 for smooth lane change
-    crashed: false,
-    crashTimer: 0,
-    penaltyTimer: 0,
-    redLightViolation: false
-  };
-}
-
-// Traffic cars
-let traffic = [];
-function spawnTraffic(){
-  const lane = Math.floor(Math.random() * LANES);
-  // don't spawn on player lane near player
-  const already = traffic.some(t => t.lane === lane && t.y < -H*0.2);
-  if(already) return;
-  traffic.push({
-    lane,
-    y: -CAR_H - 20,
-    speed: 80 + Math.random() * 60 + level * 10,
-    color: ['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#e67e22'][Math.floor(Math.random()*6)],
-    type: Math.random()<0.3?'truck':'sedan'
-  });
-}
-
-// Signal
-let signal = 'green';
-let sigTimer = 0, sigMax = 5;
-const SIG_DUR = { green: 5, yellow: 1.5, red: 4 };
-
-// Road scenery
-let trees = [], dashes = [];
-function initScenery(){
-  trees = [];
-  for(let i=0;i<12;i++){
-    trees.push({ side: i%2===0?'L':'R', y: i*(H/6), wobble: Math.random()*3 });
-  }
-  dashes = [];
-  for(let lane=1;lane<LANES;lane++){
-    for(let d=0;d<12;d++){
-      dashes.push({ lane, y: d*(H/6) });
-    }
-  }
-}
-
-// Keys
-const keys = {};
-window.addEventListener('keydown', e => {
-  keys[e.key] = true;
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  if(!gameRunning) return;
-  if((e.key==='ArrowLeft'||e.key==='a'||e.key==='A') && player.lane > 0){
-    player.targetLane = player.lane - 1;
-  }
-  if((e.key==='ArrowRight'||e.key==='d'||e.key==='D') && player.lane < LANES-1){
-    player.targetLane = player.lane + 1;
-  }
-});
-window.addEventListener('keyup', e => { keys[e.key] = false; });
-
-// ── Game Loop ─────────────────────────────────────────────────────────────────
-function loop(ts){
-  if(!gameRunning) return;
-  const dt = Math.min((ts - lastTime)/1000, 0.05);
-  lastTime = ts;
-  update(dt);
-  draw();
-  raf = requestAnimationFrame(loop);
-}
-
-function update(dt){
-  calcRoad();
-
-  // Signal
-  sigTimer -= dt;
-  if(sigTimer <= 0){
-    if(signal==='green')  { signal='yellow'; sigMax=SIG_DUR.yellow; }
-    else if(signal==='yellow') { signal='red'; sigMax=Math.max(2, SIG_DUR.red - level*0.15); }
-    else                  { signal='green'; sigMax=Math.max(2.5, SIG_DUR.green - level*0.1); }
-    sigTimer = sigMax;
-    updateSigUI();
-  }
-  updateSigBar();
-
-  // Player input
-  const accel = keys['ArrowUp']   || keys['w'] || keys['W'];
-  const brake  = keys['ArrowDown'] || keys['s'] || keys['S'];
-
-  if(!player.crashed){
-    if(accel){
-      player.speed = Math.min(player.maxSpeed + level*20, player.speed + player.accel * dt);
-    } else if(brake){
-      player.speed = Math.max(0, player.speed - player.brakeForce * dt);
-    } else {
-      player.speed = Math.max(0, player.speed - player.friction * dt);
-    }
-
-    // Red/Yellow light penalty — if player passes signal line at speed
-    const signalY = H * 0.42;
-    if((signal==='red' || signal==='yellow') && player.speed > 30){
-      player.redLightViolation = true;
-    } else {
-      player.redLightViolation = false;
-    }
-  } else {
-    player.speed = Math.max(0, player.speed - 300 * dt);
-    player.crashTimer -= dt;
-    if(player.crashTimer <= 0){ player.crashed = false; }
-  }
-
-  // Penalty timer
-  if(player.penaltyTimer > 0){
-    player.penaltyTimer -= dt;
-    showPenalty(true);
-  } else {
-    showPenalty(false);
-  }
-
-  // Red light: apply penalty once per cycle if speeding through
-  if(player.redLightViolation && player.speed > 80){
-    // throttle penalty to once per 2s
-    if(!player._lastPenTime || (Date.now() - player._lastPenTime > 2000)){
-      penalties++;
-      score = Math.max(0, score - 20);
-      player.penaltyTimer = 1.2;
-      player._lastPenTime = Date.now();
-      showWarn(true);
-      setTimeout(()=>showWarn(false), 1000);
-    }
-  }
-
-  // Lane change animation
-  if(player.targetLane !== player.lane){
-    player.laneAnim += dt * 6;
-    if(player.laneAnim >= 1){
-      player.lane = player.targetLane;
-      player.laneAnim = 0;
-    }
-  }
-
-  // Road scroll
-  roadOffset = (roadOffset + player.speed * dt) % (H/6);
-  distance += player.speed * dt * 0.05;
-  score += player.speed * dt * 0.04;
-
-  // Traffic
-  traffic.forEach(t => {
-    t.y += (player.speed - t.speed) * dt;
-  });
-  // Spawn
-  if(Math.random() < (0.4 + level*0.08) * dt * 60 && traffic.length < 8 + level){
-    spawnTraffic();
-  }
-  // Remove off-screen
-  traffic = traffic.filter(t => t.y < H + 100);
-
-  // Player visual x
-  const fromX = laneX(player.lane);
-  const toX   = laneX(player.targetLane);
-  player.x = fromX + (toX - fromX) * Math.min(player.laneAnim, 1);
-  player.y = H * 0.72;
-
-  // Collision with traffic
-  if(!player.crashed){
-    traffic.forEach(t => {
-      const tx = laneX(t.lane);
-      const th = t.type==='truck' ? CAR_H*1.4 : CAR_H;
-      const tw = t.type==='truck' ? CAR_W*1.2 : CAR_W;
-      if(Math.abs(player.x - tx) < (CAR_W + tw)*0.42 &&
-         Math.abs(player.y - t.y) < (CAR_H + th)*0.45){
-        player.crashed = true;
-        player.crashTimer = 1.2;
-        score = Math.max(0, score - 50);
-        penalties++;
-        triggerCrashFlash();
+      :root {
+        --red: #ff2222;
+        --yellow: #ffcc00;
+        --green: #00ff44;
+        --accent: #00f5ff;
+        --ui-bg: rgba(0, 0, 0, 0.7);
       }
-    });
-  }
 
-  // Timer
-  timeLeft -= dt;
-  if(timeLeft <= 0){ timeLeft = 0; endGame(); }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-  // Level up
-  if(Math.floor(score/300) + 1 > level){
-    level = Math.min(10, Math.floor(score/300)+1);
-  }
+      body {
+        background: #000;
+        font-family: "Rajdhani", sans-serif;
+        overflow: hidden;
+        user-select: none;
+      }
 
-  // HUD
-  document.getElementById('hScore').textContent = Math.floor(score);
-  document.getElementById('hTime').textContent  = Math.ceil(timeLeft);
-  document.getElementById('hLevel').textContent = level;
+      #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
 
-  // Speedometer
-  drawSpeedometer(player.speed, player.maxSpeed + level*20);
-}
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
 
-// ── Draw ──────────────────────────────────────────────────────────────────────
-function draw(){
-  calcRoad();
-  ctx.clearRect(0,0,W,H);
+      #hud {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 14px 20px;
+        pointer-events: none;
+        z-index: 10;
+      }
 
-  drawBackground();
-  drawRoad();
-  drawDashes();
-  drawSignalLine();
-  drawTrees();
-  drawTrafficCars();
-  drawPlayerCar();
-}
+      .hud-panel {
+        background: var(--ui-bg);
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        padding: 10px 18px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 0 18px rgba(0, 245, 255, 0.18);
+      }
 
-function drawBackground(){
-  // Sky/grass sides
-  ctx.fillStyle = '#1a2e1a';
-  ctx.fillRect(0, 0, W, H);
-  // Lighter grass strip
-  ctx.fillStyle = '#254020';
-  ctx.fillRect(0, 0, ROAD_L+4, H);
-  ctx.fillRect(ROAD_R-4, 0, W-ROAD_R+4, H);
-}
+      .hud-label {
+        font-family: "Orbitron", monospace;
+        color: var(--accent);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
 
-function drawRoad(){
-  // Main road
-  const rg = ctx.createLinearGradient(ROAD_L, 0, ROAD_R, 0);
-  rg.addColorStop(0,   '#383838');
-  rg.addColorStop(0.5, '#444');
-  rg.addColorStop(1,   '#383838');
-  ctx.fillStyle = rg;
-  ctx.fillRect(ROAD_L, 0, ROAD_R-ROAD_L, H);
+      .hud-value {
+        font-family: "Orbitron", monospace;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
 
-  // Road edges
-  ctx.fillStyle = '#ffcc00';
-  ctx.fillRect(ROAD_L, 0, 4, H);
-  ctx.fillRect(ROAD_R-4, 0, 4, H);
+      #signal-panel {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        background: var(--ui-bg);
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        padding: 14px 12px;
+        z-index: 10;
+        backdrop-filter: blur(6px);
+      }
 
-  // Curb
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(ROAD_L-8, 0, 8, H);
-  ctx.fillRect(ROAD_R, 0, 8, H);
-}
+      .signal-label {
+        font-family: "Orbitron", monospace;
+        color: var(--accent);
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        text-align: center;
+        margin-bottom: 8px;
+      }
 
-function drawDashes(){
-  // Scrolling lane dividers
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([30, 20]);
-  ctx.lineDashOffset = -roadOffset;
-  for(let lane=1;lane<LANES;lane++){
-    const x = ROAD_L + lane * LANE_W;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  ctx.lineDashOffset = 0;
-}
+      .signal-box {
+        width: 32px;
+        background: #111;
+        border-radius: 6px;
+        border: 2px solid #333;
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin: 0 auto;
+      }
 
-function drawSignalLine(){
-  // Horizontal stop line
-  const sy = H * 0.42;
-  const col = signal==='red'?'#ff2222': signal==='yellow'?'#ffcc00':'rgba(255,255,255,0.15)';
-  ctx.strokeStyle = col;
-  ctx.lineWidth = signal==='red'||signal==='yellow' ? 3 : 1;
-  if(signal==='red'||signal==='yellow'){
-    ctx.shadowColor = col; ctx.shadowBlur = 10;
-  }
-  ctx.beginPath();
-  ctx.moveTo(ROAD_L, sy); ctx.lineTo(ROAD_R, sy);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+      .signal-light {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #1a1a1a;
+        transition:
+          background 0.3s,
+          box-shadow 0.3s;
+      }
 
-  // Signal pole + light on road side
-  const px = ROAD_R + 14;
-  // Pole
-  ctx.fillStyle = '#666';
-  ctx.fillRect(px, sy-10, 5, H*0.15);
-  // Box
-  ctx.fillStyle = '#111';
-  ctx.beginPath();
-  ctx.roundRect(px-2, sy-40, 20, 34, 4);
-  ctx.fill();
-  // Lights
-  const lCols = {red:'#ff2222',yellow:'#ffcc00',green:'#00ff55'};
-  ['red','yellow','green'].forEach((s,i)=>{
-    ctx.beginPath();
-    ctx.arc(px+8, sy-33+i*11, 5, 0, Math.PI*2);
-    if(signal===s){
-      ctx.fillStyle = lCols[s];
-      ctx.shadowColor = lCols[s]; ctx.shadowBlur = 10;
-    } else {
-      ctx.fillStyle = '#1a1a1a'; ctx.shadowBlur = 0;
-    }
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  });
-}
+      .signal-light.active-red {
+        background: var(--red);
+        box-shadow: 0 0 12px var(--red);
+      }
 
-function drawTrees(){
-  for(let i=0;i<14;i++){
-    const y = ((i * H/7) + roadOffset*0.3) % (H + 60) - 30;
-    const side = i%2===0;
-    const x = side ? ROAD_L - 28 : ROAD_R + 28;
-    // Trunk
-    ctx.fillStyle = '#5a3e1b';
-    ctx.fillRect(x-4, y+10, 8, 22);
-    // Canopy
-    ctx.beginPath();
-    ctx.arc(x, y, 18, 0, Math.PI*2);
-    ctx.fillStyle = '#2d6e2d';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x-6, y+5, 13, 0, Math.PI*2);
-    ctx.fillStyle = '#3a8a3a';
-    ctx.fill();
-  }
-}
+      .signal-light.active-yellow {
+        background: var(--yellow);
+        box-shadow: 0 0 12px var(--yellow);
+      }
 
-function drawTrafficCars(){
-  traffic.forEach(t => {
-    const x = laneX(t.lane);
-    const h = t.type==='truck' ? CAR_H*1.4 : CAR_H;
-    const w = t.type==='truck' ? CAR_W*1.15 : CAR_W;
-    drawCarShape(ctx, x, t.y, w, h, t.color, false, t.type);
-  });
-}
+      .signal-light.active-green {
+        background: var(--green);
+        box-shadow: 0 0 12px var(--green);
+      }
 
-function drawPlayerCar(){
-  if(player.crashed){
-    // Shake effect
-    const shake = (Math.random()-0.5)*6;
-    ctx.save();
-    ctx.translate(shake, 0);
-    drawCarShape(ctx, player.x, player.y, CAR_W, CAR_H, '#ff6600', true, 'sports');
-    // Crash sparks
-    for(let s=0;s<8;s++){
-      const a = (s/8)*Math.PI*2 + Date.now()*0.015;
-      const r = 18 + Math.sin(Date.now()*0.04+s)*8;
-      ctx.beginPath();
-      ctx.arc(player.x+Math.cos(a)*r, player.y+Math.sin(a)*r, 3, 0, Math.PI*2);
-      ctx.fillStyle = s%2===0?'#ff8800':'#ffcc00';
-      ctx.shadowColor='#ff4400'; ctx.shadowBlur=10;
-      ctx.fill(); ctx.shadowBlur=0;
-    }
-    ctx.restore();
-  } else {
-    drawCarShape(ctx, player.x, player.y, CAR_W, CAR_H, '#00cfff', true, 'sports');
-    // Speed particles
-    if(player.speed > 100){
-      for(let p=0;p<3;p++){
-        const px = player.x + (Math.random()-0.5)*20;
-        const py = player.y + CAR_H*0.5 + Math.random()*20;
+      .timer-bar-wrap {
+        margin-top: 8px;
+        background: #1a1a1a;
+        border-radius: 4px;
+        height: 6px;
+        overflow: hidden;
+        border: 1px solid #333;
+      }
+
+      #timer-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition:
+          width 0.2s linear,
+          background 0.3s;
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 10;
+      }
+
+      .ctrl-btn {
+        font-family: "Orbitron", monospace;
+        font-size: 11px;
+        letter-spacing: 1px;
+        padding: 8px 16px;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        background: var(--ui-bg);
+        color: var(--accent);
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .ctrl-btn:hover {
+        background: rgba(0, 245, 255, 0.12);
+        box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+      }
+
+      #overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.82);
+        z-index: 20;
+        backdrop-filter: blur(4px);
+      }
+
+      #overlay h1 {
+        font-family: "Orbitron", monospace;
+        font-size: clamp(28px, 6vw, 60px);
+        color: var(--accent);
+        text-shadow: 0 0 30px var(--accent);
+        letter-spacing: 4px;
+        margin-bottom: 8px;
+      }
+
+      #overlay .sub {
+        font-family: "Rajdhani", sans-serif;
+        color: #aaa;
+        font-size: 16px;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
+      }
+
+      .stats-row {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 28px;
+      }
+
+      .stat-box {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(0, 245, 255, 0.3);
+        border-radius: 8px;
+        padding: 10px 18px;
+        text-align: center;
+      }
+
+      .stat-val {
+        font-family: "Orbitron", monospace;
+        font-size: 22px;
+        color: #fff;
+      }
+
+      .stat-lbl {
+        font-size: 11px;
+        color: #888;
+        letter-spacing: 1px;
+      }
+
+      #start-btn {
+        font-family: "Orbitron", monospace;
+        font-size: 14px;
+        letter-spacing: 3px;
+        padding: 14px 40px;
+        border: 2px solid var(--accent);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+      }
+
+      #start-btn:hover {
+        background: var(--accent);
+        color: #000;
+        box-shadow: 0 0 30px var(--accent);
+      }
+
+      #diff-badge {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Orbitron", monospace;
+        font-size: 10px;
+        letter-spacing: 2px;
+        color: #ffcc00;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid #ffcc00;
+        border-radius: 20px;
+        padding: 4px 14px;
+        z-index: 10;
+      }
+
+      #collision-flash {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 0, 0, 0);
+        pointer-events: none;
+        z-index: 15;
+        transition: background 0.1s;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <canvas id="gameCanvas"></canvas>
+
+      <header id="hud">
+        <div class="hud-panel">
+          <p class="hud-label">Score</p>
+          <p class="hud-value" id="score-display">0</p>
+        </div>
+        <div class="hud-panel">
+          <p class="hud-label">Cars Passed</p>
+          <p class="hud-value" id="passed-display">0</p>
+        </div>
+        <div class="hud-panel">
+          <p class="hud-label">Collisions</p>
+          <p class="hud-value" id="collision-display" style="color: #ff4444">
+            0
+          </p>
+        </div>
+        <div class="hud-panel">
+          <p class="hud-label">Level</p>
+          <p class="hud-value" id="level-display">1</p>
+        </div>
+      </header>
+
+      <p id="diff-badge">LEVEL 1 — EASY</p>
+
+      <aside id="signal-panel" aria-label="Traffic Signal">
+        <p class="signal-label">SIGNAL</p>
+        <div class="signal-box" role="img" aria-label="Traffic light">
+          <div
+            class="signal-light active-red"
+            id="red-light"
+            aria-label="Red light"
+          ></div>
+          <div
+            class="signal-light"
+            id="yellow-light"
+            aria-label="Yellow light"
+          ></div>
+          <div
+            class="signal-light"
+            id="green-light"
+            aria-label="Green light"
+          ></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div id="timer-bar" style="width: 100%; background: var(--red)"></div>
+        </div>
+        <p
+          style="
+            text-align: center;
+            margin-top: 5px;
+            font-family: &quot;Orbitron&quot;, monospace;
+            font-size: 11px;
+            color: #fff;
+          "
+          id="timer-count"
+        >
+          5s
+        </p>
+      </aside>
+
+      <nav id="controls" aria-label="Game controls">
+        <button class="ctrl-btn" onclick="toggleDayNight()">
+          🌙 Day/Night
+        </button>
+        <button class="ctrl-btn" onclick="togglePause()">⏸ Pause</button>
+      </nav>
+
+      <main id="overlay" role="dialog" aria-modal="true" aria-label="Game menu">
+        <h1>🚦 TRAFFIC RUSH</h1>
+        <p class="sub">Manage the intersection · Avoid collisions</p>
+        <div class="stats-row" id="stats-row" style="display: none">
+          <div class="stat-box">
+            <p class="stat-val" id="final-score">0</p>
+            <p class="stat-lbl">SCORE</p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-val" id="final-passed">0</p>
+            <p class="stat-lbl">PASSED</p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-val" id="final-collisions">0</p>
+            <p class="stat-lbl">CRASHES</p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-val" id="final-level">1</p>
+            <p class="stat-lbl">LEVEL</p>
+          </div>
+        </div>
+        <button id="start-btn" onclick="startGame()">START GAME</button>
+      </main>
+
+      <div id="collision-flash" aria-hidden="true"></div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      let W,
+        H,
+        gameRunning = false,
+        paused = false,
+        isNight = false;
+      let score = 0,
+        carsPassed = 0,
+        collisions = 0,
+        level = 1;
+      let signal = "red";
+      let signalTimer = 0;
+      const SIGNAL_DURATIONS = { red: 5, yellow: 1.5, green: 4 };
+      let signalMax = SIGNAL_DURATIONS.red;
+      let cars = [],
+        clouds = [],
+        stars = [],
+        buildings = [];
+      let spawnTimer = 0,
+        levelTimer = 0;
+      let animFrame;
+      let lastTime = 0;
+
+      const LANE_COUNT = 5;
+      let ROAD_TOP, ROAD_BOTTOM, LANE_H, INTERSECTION_X, GROUND_H, SKY_H;
+
+      function calcLayout() {
+        W = canvas.width;
+        H = canvas.height;
+        SKY_H = H * 0.5;
+        ROAD_TOP = H * 0.5;
+        ROAD_BOTTOM = H * 0.78;
+        LANE_H = (ROAD_BOTTOM - ROAD_TOP) / LANE_COUNT;
+        INTERSECTION_X = W * 0.52;
+        GROUND_H = H - ROAD_BOTTOM;
+      }
+
+      function genBuildings() {
+        buildings = [];
+        const count = 14;
+        for (let i = 0; i < count; i++) {
+          const bw = 40 + Math.random() * 70;
+          const bh = 60 + Math.random() * 150;
+          const bx = (W / count) * i + Math.random() * 20 - 10;
+          buildings.push({ x: bx, w: bw, h: bh, windows: [] });
+          const cols = Math.floor(bw / 14);
+          const rows = Math.floor(bh / 18);
+          for (let r = 0; r < rows; r++)
+            for (let c = 0; c < cols; c++)
+              buildings[buildings.length - 1].windows.push({
+                r,
+                c,
+                on: Math.random() > 0.35,
+              });
+        }
+      }
+
+      function genStars() {
+        stars = [];
+        for (let i = 0; i < 120; i++)
+          stars.push({
+            x: Math.random() * W,
+            y: Math.random() * SKY_H * 0.9,
+            r: 0.5 + Math.random() * 1.5,
+          });
+      }
+
+      function genClouds() {
+        clouds = [];
+        for (let i = 0; i < 5; i++)
+          clouds.push({
+            x: Math.random() * W,
+            y: 30 + Math.random() * 80,
+            w: 80 + Math.random() * 120,
+            speed: 10 + Math.random() * 15,
+          });
+      }
+
+      const CAR_COLORS = [
+        "#e74c3c",
+        "#3498db",
+        "#f39c12",
+        "#2ecc71",
+        "#9b59b6",
+        "#1abc9c",
+        "#e67e22",
+        "#ecf0f1",
+      ];
+      const CAR_TYPES = ["sedan", "truck", "bus", "sports"];
+
+      function makeCar(lane) {
+        const goRight = lane < 3;
+        const type = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
+        const baseSpeed = (1.5 + Math.random()) * (0.8 + level * 0.12);
+        const dims = {
+          sedan: { w: 50, h: 22 },
+          truck: { w: 70, h: 24 },
+          bus: { w: 90, h: 26 },
+          sports: { w: 46, h: 19 },
+        };
+        const d = dims[type];
+        const y = ROAD_TOP + lane * LANE_H + (LANE_H - d.h) / 2;
+        return {
+          x: goRight ? -d.w - 10 : W + d.w + 10,
+          y,
+          lane,
+          goRight,
+          type,
+          w: d.w,
+          h: d.h,
+          color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+          speed: baseSpeed,
+          state: "moving",
+          passed: false,
+          collided: false,
+          alpha: 1,
+        };
+      }
+
+      function getStopX(car) {
+        return car.goRight ? INTERSECTION_X - car.w - 14 : INTERSECTION_X + 14;
+      }
+
+      function nextSignal() {
+        if (signal === "red") {
+          signal = "green";
+          signalMax = SIGNAL_DURATIONS.green - Math.min(level * 0.12, 2);
+        } else if (signal === "green") {
+          signal = "yellow";
+          signalMax = SIGNAL_DURATIONS.yellow;
+        } else {
+          signal = "red";
+          signalMax = SIGNAL_DURATIONS.red - Math.min(level * 0.08, 2);
+        }
+        signalTimer = signalMax;
+        updateSignalUI();
+      }
+
+      function updateSignalUI() {
+        document.getElementById("red-light").className =
+          "signal-light" + (signal === "red" ? " active-red" : "");
+        document.getElementById("yellow-light").className =
+          "signal-light" + (signal === "yellow" ? " active-yellow" : "");
+        document.getElementById("green-light").className =
+          "signal-light" + (signal === "green" ? " active-green" : "");
+        const bar = document.getElementById("timer-bar");
+        bar.style.background =
+          signal === "red"
+            ? "var(--red)"
+            : signal === "yellow"
+              ? "var(--yellow)"
+              : "var(--green)";
+      }
+
+      function initGame() {
+        calcLayout();
+        genBuildings();
+        genStars();
+        genClouds();
+        cars = [];
+        score = 0;
+        carsPassed = 0;
+        collisions = 0;
+        level = 1;
+        signal = "red";
+        signalTimer = SIGNAL_DURATIONS.red;
+        signalMax = SIGNAL_DURATIONS.red;
+        spawnTimer = 0;
+        levelTimer = 0;
+        updateSignalUI();
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById("score-display").textContent = score;
+        document.getElementById("passed-display").textContent = carsPassed;
+        document.getElementById("collision-display").textContent = collisions;
+        document.getElementById("level-display").textContent = level;
+        document.getElementById("diff-badge").textContent =
+          `LEVEL ${level} — ${level < 3 ? "EASY" : level < 6 ? "MEDIUM" : level < 9 ? "HARD" : "EXTREME"}`;
+        if (collisions >= 5) endGame();
+      }
+
+      function loop(ts) {
+        if (!gameRunning) return;
+        const dt = Math.min((ts - lastTime) / 1000, 0.05);
+        lastTime = ts;
+        if (!paused) update(dt);
+        draw();
+        animFrame = requestAnimationFrame(loop);
+      }
+
+      function update(dt) {
+        signalTimer -= dt;
+        if (signalTimer <= 0) nextSignal();
+
+        const pct = Math.max(0, signalTimer / signalMax);
+        document.getElementById("timer-bar").style.width = pct * 100 + "%";
+        document.getElementById("timer-count").textContent =
+          Math.ceil(signalTimer) + "s";
+
+        levelTimer += dt;
+        if (levelTimer > 20) {
+          level = Math.min(level + 1, 12);
+          levelTimer = 0;
+          updateHUD();
+        }
+
+        spawnTimer -= dt;
+        const spawnRate = Math.max(0.6, 2.2 - level * 0.12);
+        if (spawnTimer <= 0) {
+          const lane = Math.floor(Math.random() * LANE_COUNT);
+          const maxCarsInLane = cars.filter(
+            (c) => c.lane === lane && !c.passed && !c.collided,
+          ).length;
+          if (maxCarsInLane < 4) cars.push(makeCar(lane));
+          spawnTimer = spawnRate + Math.random() * 0.5;
+        }
+
+        cars.forEach((car) => {
+          if (car.collided) {
+            car.alpha -= dt * 1.5;
+            return;
+          }
+          if (car.passed) {
+            car.x += (car.goRight ? 1 : -1) * car.speed * 60 * dt;
+            return;
+          }
+          const stopX = getStopX(car);
+          const atStop = car.goRight
+            ? car.x + car.w >= stopX - 2
+            : car.x <= stopX + 2;
+
+          if (signal === "red" || signal === "yellow") {
+            if (atStop) {
+              car.state = "stopped";
+              car.x = car.goRight ? stopX - car.w : stopX;
+            } else {
+              const dist = car.goRight ? stopX - car.w - car.x : car.x - stopX;
+              const slowZone = 120;
+              const spd =
+                dist < slowZone
+                  ? car.speed * (0.3 + 0.7 * (dist / slowZone))
+                  : car.speed;
+              car.x += (car.goRight ? 1 : -1) * spd * 60 * dt;
+              car.state = dist < slowZone ? "stopping" : "moving";
+            }
+          } else {
+            car.state = "moving";
+            car.x += (car.goRight ? 1 : -1) * car.speed * 60 * dt;
+          }
+
+          if (!car.passed) {
+            const clearRight = car.goRight && car.x > W + 20;
+            const clearLeft = !car.goRight && car.x + car.w < -20;
+            if (clearRight || clearLeft) {
+              car.passed = true;
+              carsPassed++;
+              score += 10 + level * 2;
+              updateHUD();
+            }
+          }
+        });
+
+        for (let i = 0; i < cars.length; i++) {
+          if (cars[i].collided || cars[i].passed) continue;
+          for (let j = i + 1; j < cars.length; j++) {
+            if (cars[j].collided || cars[j].passed) continue;
+            if (cars[i].lane !== cars[j].lane) continue;
+            const a = cars[i],
+              b = cars[j];
+            if (
+              a.x < b.x + b.w - 4 &&
+              a.x + a.w > b.x + 4 &&
+              a.y < b.y + b.h - 4 &&
+              a.y + a.h > b.y + 4
+            ) {
+              a.collided = b.collided = true;
+              collisions++;
+              score = Math.max(0, score - 30);
+              updateHUD();
+              flashRed();
+            }
+          }
+        }
+
+        clouds.forEach((c) => {
+          c.x += c.speed * dt;
+          if (c.x > W + 200) c.x = -200;
+        });
+
+        cars = cars.filter(
+          (c) => c.alpha > 0 && !(c.passed && (c.x > W + 200 || c.x < -200)),
+        );
+      }
+
+      function flashRed() {
+        const el = document.getElementById("collision-flash");
+        el.style.background = "rgba(255,0,0,0.35)";
+        setTimeout(() => (el.style.background = "rgba(255,0,0,0)"), 250);
+      }
+
+      function draw() {
+        calcLayout();
+        ctx.clearRect(0, 0, W, H);
+        drawSky();
+        drawBuildings();
+        drawCloudsOrStars();
+        drawRoad();
+        drawIntersection();
+        drawTrafficLight();
+        drawCars();
+        drawGround();
+      }
+
+      function drawSky() {
+        const grad = ctx.createLinearGradient(0, 0, 0, SKY_H);
+        if (isNight) {
+          grad.addColorStop(0, "#02020f");
+          grad.addColorStop(1, "#0d0d3a");
+        } else {
+          grad.addColorStop(0, "#3a9bd5");
+          grad.addColorStop(1, "#aee8f5");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, SKY_H);
+      }
+
+      function drawCloudsOrStars() {
+        if (isNight) {
+          ctx.fillStyle = "#fff";
+          stars.forEach((s) => {
+            ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Date.now() / 1000 + s.x);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(W * 0.88, SKY_H * 0.18, 28, 0, Math.PI * 2);
+          ctx.fillStyle = "#fffde7";
+          ctx.shadowColor = "#fffde7";
+          ctx.shadowBlur = 30;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(W * 0.88 + 10, SKY_H * 0.18 - 4, 24, 0, Math.PI * 2);
+          ctx.fillStyle = "#02020f";
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(W * 0.85, SKY_H * 0.2, 36, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffe87c";
+          ctx.shadowColor = "#ffcc00";
+          ctx.shadowBlur = 40;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          clouds.forEach((c) => {
+            ctx.fillStyle = "rgba(255,255,255,0.85)";
+            drawCloud(c.x, c.y, c.w);
+          });
+        }
+      }
+
+      function drawCloud(x, y, w) {
+        const r = w * 0.18;
         ctx.beginPath();
-        ctx.arc(px, py, 2+Math.random()*2, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(0,200,255,${0.2+Math.random()*0.3})`;
+        ctx.ellipse(x + w * 0.3, y + r, r * 1.5, r, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + w * 0.55, y, r * 2, r * 1.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+          x + w * 0.75,
+          y + r * 0.5,
+          r * 1.3,
+          r * 0.9,
+          0,
+          0,
+          Math.PI * 2,
+        );
         ctx.fill();
       }
-    }
-  }
-}
 
-function drawCarShape(ctx, x, y, w, h, color, isPlayer, type){
-  const cx = x - w/2, cy = y - h/2;
+      function drawBuildings() {
+        buildings.forEach((b) => {
+          const by = SKY_H - b.h;
+          ctx.fillStyle = isNight ? "#1a1a2e" : "#8b7355";
+          ctx.fillRect(b.x, by, b.w, b.h);
+          b.windows.forEach((win) => {
+            const wx = b.x + 5 + win.c * 14;
+            const wy = by + 8 + win.r * 18;
+            if (wx + 8 > b.x + b.w - 3) return;
+            if (isNight && win.on) {
+              ctx.fillStyle = "rgba(255,240,150,0.7)";
+            } else if (!isNight) {
+              ctx.fillStyle = "rgba(180,220,255,0.5)";
+            } else {
+              ctx.fillStyle = "rgba(40,40,60,0.8)";
+            }
+            ctx.fillRect(wx, wy, 8, 10);
+          });
+        });
+      }
 
-  // Shadow
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.ellipse(x+4, y+h*0.48, w*0.45, 8, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.restore();
+      function drawRoad() {
+        const grad = ctx.createLinearGradient(0, ROAD_TOP, 0, ROAD_BOTTOM);
+        if (isNight) {
+          grad.addColorStop(0, "#2a2a2a");
+          grad.addColorStop(1, "#1a1a1a");
+        } else {
+          grad.addColorStop(0, "#5a5a5a");
+          grad.addColorStop(1, "#444");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, ROAD_TOP, W, ROAD_BOTTOM - ROAD_TOP);
+        ctx.fillStyle = isNight ? "#1a1a1a" : "#7a6a55";
+        ctx.fillRect(0, ROAD_TOP - 6, W, 6);
+        ctx.fillRect(0, ROAD_BOTTOM, W, 6);
+        for (let i = 1; i < LANE_COUNT; i++) {
+          const y = ROAD_TOP + i * LANE_H;
+          if (i === 3) {
+            ctx.strokeStyle = "#ffcc00";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+          } else {
+            ctx.strokeStyle = isNight
+              ? "rgba(255,255,255,0.25)"
+              : "rgba(255,255,255,0.35)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([20, 20]);
+          }
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
 
-  // Body
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(cx, cy+h*0.18, w, h*0.72, 5);
-  ctx.fill();
+      function drawGround() {
+        const grad = ctx.createLinearGradient(0, ROAD_BOTTOM + 6, 0, H);
+        if (isNight) {
+          grad.addColorStop(0, "#0d1a0d");
+          grad.addColorStop(1, "#050d05");
+        } else {
+          grad.addColorStop(0, "#5a8a4a");
+          grad.addColorStop(1, "#3a6a2a");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, ROAD_BOTTOM + 6, W, H - ROAD_BOTTOM - 6);
+      }
 
-  // Roof
-  ctx.fillStyle = shadeHex(color, -30);
-  if(type==='truck'){
-    ctx.beginPath();
-    ctx.roundRect(cx+2, cy+4, w-4, h*0.35, 4);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.roundRect(cx+w*0.15, cy+6, w*0.7, h*0.32, 4);
-    ctx.fill();
-  }
+      function drawIntersection() {
+        const iw = 80;
+        const stripes = 6;
+        for (let i = 0; i < stripes; i++) {
+          ctx.fillStyle =
+            i % 2 === 0
+              ? isNight
+                ? "rgba(255,255,255,0.5)"
+                : "rgba(255,255,255,0.7)"
+              : "transparent";
+          const sx = INTERSECTION_X - iw / 2 + i * (iw / stripes);
+          ctx.fillRect(sx, ROAD_TOP, iw / stripes, ROAD_BOTTOM - ROAD_TOP);
+        }
+        ctx.strokeStyle = isNight ? "rgba(255,255,255,0.8)" : "#fff";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(INTERSECTION_X - iw / 2 - 2, ROAD_TOP);
+        ctx.lineTo(INTERSECTION_X - iw / 2 - 2, ROAD_BOTTOM);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(INTERSECTION_X + iw / 2 + 2, ROAD_TOP);
+        ctx.lineTo(INTERSECTION_X + iw / 2 + 2, ROAD_BOTTOM);
+        ctx.stroke();
+      }
 
-  // Windshield
-  ctx.fillStyle = isPlayer ? 'rgba(0,220,255,0.55)' : 'rgba(150,210,255,0.45)';
-  ctx.beginPath();
-  ctx.roundRect(cx+w*0.18, cy+8, w*0.64, h*0.22, 3);
-  ctx.fill();
+      function drawTrafficLight() {
+        const tx = INTERSECTION_X - 44;
+        const ty = ROAD_TOP - 80;
+        const ph = 90,
+          pw = 24;
+        ctx.fillStyle = isNight ? "#555" : "#777";
+        ctx.fillRect(tx + pw / 2 - 3, ty + ph, 6, 80);
+        ctx.fillStyle = "#111";
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(tx, ty, pw, ph, 5);
+        ctx.fill();
+        ctx.stroke();
+        const lights = [
+          { col: "#ff2222", active: signal === "red" },
+          { col: "#ffcc00", active: signal === "yellow" },
+          { col: "#00ff44", active: signal === "green" },
+        ];
+        lights.forEach((l, i) => {
+          const lx = tx + pw / 2,
+            ly = ty + 14 + i * 26;
+          ctx.beginPath();
+          ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+          if (l.active) {
+            ctx.fillStyle = l.col;
+            ctx.shadowColor = l.col;
+            ctx.shadowBlur = 18;
+          } else {
+            ctx.fillStyle = "#1a1a1a";
+            ctx.shadowBlur = 0;
+          }
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        });
+      }
 
-  // Rear window
-  ctx.fillStyle = 'rgba(150,210,255,0.35)';
-  ctx.beginPath();
-  ctx.roundRect(cx+w*0.2, cy+h*0.55, w*0.6, h*0.14, 2);
-  ctx.fill();
+      function drawCars() {
+        cars.forEach((car) => {
+          if (car.alpha <= 0) return;
+          ctx.globalAlpha = car.alpha;
+          drawCar(car);
+          ctx.globalAlpha = 1;
+        });
+      }
 
-  // Wheels
-  [[w*0.18, h*0.22],[w*0.78, h*0.22],[w*0.18, h*0.75],[w*0.78, h*0.75]].forEach(([wx,wy])=>{
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath(); ctx.ellipse(cx+wx, cy+wy, w*0.16, h*0.09, 0.3, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#555';
-    ctx.beginPath(); ctx.ellipse(cx+wx, cy+wy, w*0.08, h*0.045, 0.3, 0, Math.PI*2); ctx.fill();
-  });
+      function drawCar(car) {
+        const { x, y, w, h, color, type, goRight, state, collided } = car;
+        ctx.save();
+        if (!goRight) {
+          ctx.translate(x + w / 2, y + h / 2);
+          ctx.scale(-1, 1);
+          ctx.translate(-(x + w / 2), -(y + h / 2));
+        }
+        ctx.fillStyle = collided ? "#ff4400" : color;
+        if (collided) {
+          ctx.shadowColor = "#ff4400";
+          ctx.shadowBlur = 20;
+        }
+        ctx.beginPath();
+        ctx.roundRect(x, y + h * 0.25, w, h * 0.75, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#1a1a1a";
+        ctx.beginPath();
+        ctx.arc(x + w * 0.2, y + h - 5, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + w * 0.78, y + h - 5, 5, 0, Math.PI * 2);
+        ctx.fill();
+        if (state === "stopping" || state === "stopped") {
+          ctx.fillStyle = "#ff0000";
+          ctx.shadowColor = "#f00";
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.ellipse(x + 2, y + h * 0.55, 4, 3.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+      }
 
-  // Headlights (bottom)
-  ctx.fillStyle = '#fffde7';
-  ctx.shadowColor='#ffe'; ctx.shadowBlur=12;
-  ctx.beginPath(); ctx.ellipse(cx+w*0.22, cy+h*0.9, 5, 3.5, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx+w*0.78, cy+h*0.9, 5, 3.5, 0, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur=0;
+      function toggleDayNight() {
+        isNight = !isNight;
+      }
 
-  // Tail lights (top)
-  ctx.fillStyle = isPlayer ? '#00cfff' : '#ff2222';
-  ctx.shadowColor = isPlayer?'#00cfff':'#f00'; ctx.shadowBlur=8;
-  ctx.beginPath(); ctx.ellipse(cx+w*0.2, cy+h*0.22, 4, 3, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx+w*0.8, cy+h*0.22, 4, 3, 0, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur=0;
+      function togglePause() {
+        paused = !paused;
+        const btn = document.querySelector("#controls .ctrl-btn:last-child");
+        btn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+      }
 
-  if(isPlayer){
-    // Glow outline
-    ctx.strokeStyle = 'rgba(0,207,255,0.4)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(cx-1, cy+h*0.17, w+2, h*0.74, 6);
-    ctx.stroke();
-  }
-}
+      function startGame() {
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("stats-row").style.display = "none";
+        gameRunning = true;
+        paused = false;
+        initGame();
+        lastTime = performance.now();
+        cancelAnimationFrame(animFrame);
+        animFrame = requestAnimationFrame(loop);
+      }
 
-function shadeHex(hex, amt){
-  try{
-    let r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-    r=Math.max(0,Math.min(255,r+amt)); g=Math.max(0,Math.min(255,g+amt)); b=Math.max(0,Math.min(255,b+amt));
-    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-  }catch(e){return hex;}
-}
+      function endGame() {
+        gameRunning = false;
+        cancelAnimationFrame(animFrame);
+        document.getElementById("final-score").textContent = score;
+        document.getElementById("final-passed").textContent = carsPassed;
+        document.getElementById("final-collisions").textContent = collisions;
+        document.getElementById("final-level").textContent = level;
+        document.getElementById("stats-row").style.display = "flex";
+        document.querySelector("#overlay h1").textContent = "🚗 GAME OVER";
+        document.getElementById("start-btn").textContent = "PLAY AGAIN";
+        document.getElementById("overlay").style.display = "flex";
+      }
 
-// ── Speedometer ───────────────────────────────────────────────────────────────
-function drawSpeedometer(spd, maxSpd){
-  const sc = document.getElementById('spdCanvas');
-  const sctx = sc.getContext('2d');
-  sctx.clearRect(0,0,80,80);
-  const cx=40,cy=40,r=34;
-
-  // Track
-  sctx.beginPath();
-  sctx.arc(cx,cy,r, Math.PI*0.75, Math.PI*2.25);
-  sctx.strokeStyle='rgba(255,255,255,0.1)';
-  sctx.lineWidth=7; sctx.lineCap='round';
-  sctx.stroke();
-
-  // Fill
-  const pct = Math.min(spd/maxSpd,1);
-  const startA = Math.PI*0.75;
-  const endA   = startA + pct * Math.PI*1.5;
-  const col = pct<0.4?'#00ff55': pct<0.75?'#ffcc00':'#ff2222';
-  sctx.beginPath();
-  sctx.arc(cx,cy,r,startA,endA);
-  sctx.strokeStyle=col;
-  sctx.lineWidth=7; sctx.lineCap='round';
-  sctx.shadowColor=col; sctx.shadowBlur=10;
-  sctx.stroke(); sctx.shadowBlur=0;
-
-  document.getElementById('spdVal').textContent = Math.floor(spd*0.36);
-}
-
-// ── Signal UI ─────────────────────────────────────────────────────────────────
-function updateSigUI(){
-  document.getElementById('dRed').className    = 'sig-dot' + (signal==='red'    ?' on-red'   :'');
-  document.getElementById('dYellow').className = 'sig-dot' + (signal==='yellow' ?' on-yellow':'');
-  document.getElementById('dGreen').className  = 'sig-dot' + (signal==='green'  ?' on-green' :'');
-  document.getElementById('sigLabel').textContent = signal.toUpperCase();
-  const bar = document.getElementById('sigBar');
-  bar.style.background = signal==='red'?'#ff2222': signal==='yellow'?'#ffcc00':'#00ff55';
-}
-
-function updateSigBar(){
-  const pct = sigTimer / sigMax;
-  document.getElementById('sigBar').style.height = (pct*100)+'%';
-  document.getElementById('sigTimer').textContent = Math.ceil(sigTimer)+'s';
-}
-
-function showPenalty(v){
-  document.getElementById('penFlash').style.background = v ? 'rgba(255,0,0,0.22)' : 'rgba(255,0,0,0)';
-}
-function showWarn(v){
-  document.getElementById('rlWarn').style.opacity = v?1:0;
-}
-function triggerCrashFlash(){
-  const el=document.getElementById('penFlash');
-  el.style.background='rgba(255,60,0,0.5)';
-  setTimeout(()=>el.style.background='rgba(255,0,0,0)',300);
-  showWarn(false);
-}
-
-// ── Start / End ───────────────────────────────────────────────────────────────
-function startGame(){
-  document.getElementById('overlay').style.display='none';
-  score=0; timeLeft=60; level=1; distance=0; penalties=0;
-  traffic=[];
-  signal='green'; sigTimer=SIG_DUR.green; sigMax=SIG_DUR.green;
-  updateSigUI();
-  calcRoad(); initScenery(); resetPlayer();
-  gameRunning=true;
-  lastTime=performance.now();
-  cancelAnimationFrame(raf);
-  raf=requestAnimationFrame(loop);
-}
-
-function endGame(){
-  gameRunning=false;
-  cancelAnimationFrame(raf);
-  document.getElementById('ovScore').textContent   = Math.floor(score);
-  document.getElementById('ovDist').textContent    = Math.floor(distance);
-  document.getElementById('ovPen').textContent     = penalties;
-  document.getElementById('ovStats').style.display = 'flex';
-  document.querySelector('#overlay h1').textContent= 'TIME UP!';
-  document.getElementById('playBtn').textContent   = 'PLAY AGAIN';
-  document.getElementById('overlay').style.display ='flex';
-}
-
-// Idle preview
-(function idleLoop(){
-  if(!gameRunning){ calcRoad(); ctx.clearRect(0,0,W,H); drawBackground(); drawRoad(); drawDashes(); drawTrees(); }
-  if(!gameRunning) requestAnimationFrame(idleLoop);
-})();
-</script>
-</body>
+      calcLayout();
+      genBuildings();
+      genStars();
+      genClouds();
+      (function previewDraw() {
+        if (!gameRunning) {
+          calcLayout();
+          draw();
+          requestAnimationFrame(previewDraw);
+        }
+      })();
+    </script>
+  </body>
 </html>
