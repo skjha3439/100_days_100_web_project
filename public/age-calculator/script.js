@@ -42,6 +42,26 @@ class AgeCalculator {
     return '♑ Capricorn';
   }
 
+  getChineseZodiac(year) {
+    const animals = [
+      { name: 'Rat', emoji: '🐀' },
+      { name: 'Ox', emoji: '🐂' },
+      { name: 'Tiger', emoji: '🐅' },
+      { name: 'Rabbit', emoji: '🐇' },
+      { name: 'Dragon', emoji: '🐉' },
+      { name: 'Snake', emoji: '🐍' },
+      { name: 'Horse', emoji: '🐎' },
+      { name: 'Goat', emoji: '🐐' },
+      { name: 'Monkey', emoji: '🐒' },
+      { name: 'Rooster', emoji: '🐓' },
+      { name: 'Dog', emoji: '🐕' },
+      { name: 'Pig', emoji: '🐖' },
+    ];
+
+    const index = ((year - 4) % 12 + 12) % 12;
+    return animals[index];
+  }
+
   calculateAge(birthDate) {
     const today = new Date();
 
