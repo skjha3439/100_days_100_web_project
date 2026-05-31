@@ -2436,5 +2436,18 @@
     ],
     "difficulty": "advanced",
     "projectPath": "./public/Complaint_Management_System/index.html"
+  },
+    {
+    "projectNo": 196,
+    "projectName": "Dual-Genre Movie Matcher",
+    "projectType": "Web Application",
+    "projectDesc": "A web app to search the perfect movie. Comes with dark and light theme toggle.",
+    "techStack": [
+      "html",
+      "css",
+      "javascript"
+    ],
+    "difficulty": "advanced",
+    "projectPath": "./public/Movie-Matcher/index.html"
   }
 ]
