@@ -2461,6 +2461,15 @@
     "techStack": ["game", "html", "css", "javascript", "jquery"],
     "difficulty": "advanced",
     "projectPath": "./public/pacman/index.html"
-}
+},
+  {
+    "projectNo": 199,
+    "projectName": "Rock_Paper_Scissors",
+    "projectType": "Game",
+    "projectDesc": "A classic Rock Paper Scissors game built with HTML, CSS, and JavaScript.",
+    "techStack": ["ui","game","html","css","js"],
+    "difficulty": "intermediate",
+    "projectPath": "./public/Rock_Paper_Scissors/index.html"
+  }
   
 ]
