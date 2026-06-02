@@ -623,9 +623,6 @@ function cleanupExpiredRecentProjects() {
   }
 }
 
-// Clean up on page load
-cleanupExpiredRecentProjects();
-
 // Clean up every 5 minutes
 setInterval(cleanupExpiredRecentProjects, 5 * 60 * 1000);
 
@@ -867,7 +864,9 @@ function renderGrid() {
 
   pageItems.forEach(([day, name, url, tags]) => {
     const category = getCategoryFromTags(tags, name);
-    const isBookmarked = bookmarkedProjects.some((item) => item[0] === day);
+    const isBookmarked = bookmarkedProjects.some(
+      (item) => normalizeProjectEntry(item).day === day,
+    );
     const { card, demoUrl } = buildProjectCard({
       day,
       name,
@@ -1077,22 +1076,19 @@ function scrollToProjectSection() {
 }
 
 function toggleBookmark(project) {
-  const exists = bookmarkedProjects.find((item) => item[0] === project[0]);
+  const exists = bookmarkedProjects.find(
+    (item) => normalizeProjectEntry(item).day === project[0],
+  );
 
   if (exists) {
     bookmarkedProjects = bookmarkedProjects.filter(
-      (item) => item[0] !== project[0],
+      (item) => normalizeProjectEntry(item).day !== project[0],
     );
     showToast("Bookmark removed");
   } else {
     bookmarkedProjects.push(project);
     showToast("Project bookmarked");
   }
-
-  localStorage.setItem(
-    "bookmarkedProjects",
-    JSON.stringify(bookmarkedProjects),
-  );
 
   updateBookmarkURL();
 
@@ -1113,7 +1109,9 @@ function updateBookmarkURL() {
   const url = new URL(window.location);
 
   if (bookmarkedProjects.length > 0) {
-    const bookmarkIds = bookmarkedProjects.map((project) => project[0]);
+    const bookmarkIds = bookmarkedProjects.map(
+      (project) => normalizeProjectEntry(project).day,
+    );
     url.searchParams.set("bookmarks", bookmarkIds.join(","));
   } else {
     url.searchParams.delete("bookmarks");
@@ -1196,6 +1194,24 @@ function trackRecentProject(project) {
 
 const bookmarkGrid = document.getElementById("bookmarkGrid");
 
+function normalizeProjectEntry(project) {
+  if (Array.isArray(project)) {
+    return {
+      day: project[0],
+      name: project[1],
+      url: project[2],
+      tags: project[3],
+    };
+  }
+
+  return {
+    day: project.day,
+    name: project.name,
+    url: project.url,
+    tags: project.tags,
+  };
+}
+
 function renderBookmarks() {
   if (!bookmarkGrid) return;
 
@@ -1218,7 +1234,10 @@ function renderBookmarks() {
     ? bookmarkedProjects
     : bookmarkedProjects.slice(0, INITIAL_VISIBLE_ITEMS);
 
-  visibleBookmarks.forEach(([day, name, url, tags]) => {
+  visibleBookmarks.forEach((project) => {
+    const { day, name, url, tags } = normalizeProjectEntry(project);
+    if (!day || !name) return;
+
     const category = getCategoryFromTags(tags, name);
     const { card, demoUrl } = buildProjectCard({
       day,
@@ -1269,7 +1288,9 @@ function renderRecentProjects() {
     const tags = projectObj.tags || projectObj[3];
 
     const category = getCategoryFromTags(tags, name);
-    const isBookmarked = bookmarkedProjects.some((item) => item[0] === day);
+    const isBookmarked = bookmarkedProjects.some(
+      (item) => normalizeProjectEntry(item).day === day,
+    );
     const { card, demoUrl } = buildProjectCard({
       day,
       name,
@@ -1285,6 +1306,9 @@ function renderRecentProjects() {
     recentGrid.appendChild(card);
   });
 }
+
+// Clean up after grid references are initialized.
+cleanupExpiredRecentProjects();
 
 /* ============================================================
    VIEW ALL TOGGLE
@@ -1310,12 +1334,12 @@ if (copyBookmarksBtn) {
     }
     const textToCopy = bookmarkedProjects
       .map((p) => {
-        const projectName = p[1];
-        const { demoUrl } = resolveProjectUrls(p[0], p[1], p[2], p[3]);
+        const { day, name, url, tags } = normalizeProjectEntry(p);
+        const { demoUrl } = resolveProjectUrls(day, name, url, tags);
         const projectLink = demoUrl.startsWith("http")
           ? demoUrl
           : new URL(demoUrl, window.location.href).href;
-        return `${projectName} - ${projectLink}`;
+        return `${name} - ${projectLink}`;
       })
       .join("\n");
 
@@ -1886,25 +1910,60 @@ initTheme();
   const target = { x: 0, y: 0 };
   const current = { x: 0, y: 0 };
   const speed = 0.18;
+  const settleThreshold = 0.1;
+  let cursorVisible = false;
+  let cursorFrameId = null;
+
+  const renderCursor = () => {
+    outerCursor.style.transform = `translate3d(${current.x}px, ${current.y}px, 0) translate(-50%, -50%)`;
+    innerCursor.style.transform = `translate3d(${target.x}px, ${target.y}px, 0) translate(-50%, -50%)`;
+  };
+
+  const stopCursorLoop = () => {
+    if (cursorFrameId !== null) {
+      cancelAnimationFrame(cursorFrameId);
+      cursorFrameId = null;
+    }
+  };
 
   const update = () => {
     current.x += (target.x - current.x) * speed;
     current.y += (target.y - current.y) * speed;
+    renderCursor();
 
-    outerCursor.style.transform = `translate3d(${current.x}px, ${current.y}px, 0) translate(-50%, -50%)`;
-    innerCursor.style.transform = `translate3d(${target.x}px, ${target.y}px, 0) translate(-50%, -50%)`;
+    const isSettled =
+      Math.abs(target.x - current.x) < settleThreshold &&
+      Math.abs(target.y - current.y) < settleThreshold;
 
-    requestAnimationFrame(update);
+    if (!cursorVisible || isSettled) {
+      current.x = target.x;
+      current.y = target.y;
+      renderCursor();
+      cursorFrameId = null;
+      return;
+    }
+
+    cursorFrameId = requestAnimationFrame(update);
+  };
+
+  const startCursorLoop = () => {
+    if (cursorFrameId === null) {
+      cursorFrameId = requestAnimationFrame(update);
+    }
   };
 
   const showCursor = () => {
+    cursorVisible = true;
     outerCursor.classList.add("is-visible");
     innerCursor.classList.add("is-visible");
+    startCursorLoop();
   };
 
   const hideCursor = () => {
+    cursorVisible = false;
     outerCursor.classList.remove("is-visible");
     innerCursor.classList.remove("is-visible");
+    stopCursorLoop();
   };
 
   window.addEventListener(
@@ -1919,8 +1978,6 @@ initTheme();
 
   window.addEventListener("mouseleave", hideCursor);
   window.addEventListener("mouseenter", showCursor);
-
-  requestAnimationFrame(update);
 })();
 
 // Particle Network Background
@@ -2206,4 +2263,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
   window.addEventListener("popstate", () => restoreStateFromURL());
+});
+
+// ── Custom Animated Cursor ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.matchMedia('(pointer: fine)').matches) return;
+
+  const outer = document.querySelector('.cursor-ring--outer');
+  const inner = document.querySelector('.cursor-ring--inner');
+  if (!outer || !inner) return;
+
+  let mouseX = 0, mouseY = 0;
+  let outerX = 0, outerY = 0;
+
+  document.documentElement.style.cursor = 'none';
+  document.body.style.cursor = 'none';
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    inner.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+    outer.style.opacity = '1';
+    inner.style.opacity = '1';
+  });
+
+  document.addEventListener('mouseleave', () => {
+    outer.classList.remove('is-visible');
+    inner.classList.remove('is-visible');
+  });
+
+  function animateOuter() {
+    outerX += (mouseX - outerX) * 0.12;
+    outerY += (mouseY - outerY) * 0.12;
+    outer.style.transform = `translate3d(${outerX}px, ${outerY}px, 0) translate(-50%, -50%)`;
+    requestAnimationFrame(animateOuter);
+  }
+  animateOuter();
+
+  const hoverTargets = 'a, button, [role="button"], input, select, .chip, .project-card, .bookmark-btn';
+
+  document.addEventListener('mouseover', (e) => {
+    if (e.target.closest(hoverTargets)) {
+      outer.style.borderColor = 'rgba(59, 130, 246, 1)';
+      outer.style.boxShadow = '0 0 18px rgba(59, 130, 246, 0.6)';
+      outer.style.width = '52px';
+      outer.style.height = '52px';
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest(hoverTargets)) {
+      outer.style.borderColor = 'rgba(59, 130, 246, 0.7)';
+      outer.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.35)';
+      outer.style.width = '36px';
+      outer.style.height = '36px';
+    }
+  });
 });
