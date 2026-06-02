@@ -264,6 +264,8 @@ The website features:
 | 196 | Flipkart Clone | HTML, CSS, JS | 🛒 E-Commerce | [View Demo](https://100-days-100-web-project.vercel.app/public/Flipkart-Clone/index.html) |
 | 197 | Theme Toggler | React, Tailwind | 🎨 UI | [View Demo](https://100-days-100-web-project.vercel.app/public/Theme-toggler/src/App.jsx) |
 | 198 | Pac-Man | HTML, CSS, JS | 🎮 Game | [View Demo](https://100-days-100-web-project.vercel.app/public/pacman/index.html) |
+| 199 | Dual-Genre Movie Matcher | HTML, CSS, JS | 🎬 Web App | [View Demo](https://100-days-100-web-project.vercel.app/public/Movie-Matcher/index.html) |
+| 200 | Number Guesser Game | HTML, CSS, JS | 🎮 Game | [View Demo](https://100-days-100-web-project.vercel.app/public/NumberGuessGame/index.html) |
 
 ### 📊 Project Categories:
 - 🎮 **Games**: 50+ interactive games and puzzles
