@@ -493,7 +493,11 @@ function migrateRecentProjects() {
     return project;
   });
 
-  localStorage.setItem("recentProjects", JSON.stringify(recentProjects));
+  try {
+    localStorage.setItem("recentProjects", JSON.stringify(recentProjects));
+  } catch (error) {
+    console.warn("Could not save recent projects to localStorage:", error.message);
+  }
 }
 
 // Migrate on load
@@ -508,7 +512,11 @@ function cleanupExpiredRecentProjects() {
   recentProjects = getRecentProjectsWithinWindow();
 
   if (recentProjects.length !== initialLength) {
-    localStorage.setItem("recentProjects", JSON.stringify(recentProjects));
+    try {
+      localStorage.setItem("recentProjects", JSON.stringify(recentProjects));
+    } catch (error) {
+      console.warn("Could not save recent projects to localStorage:", error.message);
+    }
     renderRecentProjects();
   }
 }
