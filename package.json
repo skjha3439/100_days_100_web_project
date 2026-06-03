@@ -4,6 +4,7 @@
   "private": true,
   "description": "A curated open-source collection of 100+ frontend web projects",
   "scripts": {
+    "generate-previews": "node scripts/generate-previews.js",
     "dev": "npx -y serve . -p 3000",
     "lint": "npx -y htmlhint index.html contributors/contributor.html",
     "lint:all": "npx -y htmlhint '**/*.html' --ignore 'node_modules/**,**/node_modules/**'",
@@ -29,6 +30,7 @@
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
+    "puppeteer": "^25.1.0",
     "serve": "^14.2.6"
   }
 }
