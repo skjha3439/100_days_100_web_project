@@ -102,11 +102,12 @@ docker compose up --build
 make docker-up
 ```
 
-**Option D — Make (shortcut commands):**
+**Option D — Make & Run Scripts (shortcut commands):**
 ```bash
-make help    # Show all available commands
-make dev     # Start local dev server
-make lint    # Run HTML linter
+make help               # Show all available commands
+make dev                # Start local dev server
+make lint               # Run HTML linter
+npm run validate:projects # Runs projects registry JSON validation checks
 ```
 
 ## 📁 Project Structure
