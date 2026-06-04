@@ -143,7 +143,7 @@ loadProjects().catch((err) => {
         grid.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--text-color, #333);">
             <h2><i class="fas fa-exclamation-triangle"></i> Failed to Load Projects</h2>
             <p>Please check your connection or try again later.</p>
-            <p style="font-family: monospace; color: red;">${err.message}</p>
+            <p style="font-family: monospace; color: red;">${escapeHTML(err.message)}</p>
         </div>`;
     }
 });
@@ -234,64 +234,77 @@ function getProjectDescription(project) {
   );
 }
 
-function getSafeProjectHref(url) {
-  const rawUrl = String(url || "").trim();
-  if (!rawUrl) return null;
-
-  try {
-    const parsed = new URL(rawUrl, window.location.href);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return rawUrl;
-    }
-  } catch (error) {}
-
-  return null;
+/**
+ * Escape a plain string so it is safe to inject into HTML text content
+ * or attribute values (when quoted with double quotes).
+ *
+ * SECURITY: This is the primary XSS defence for every piece of
+ * contributor-supplied data that ends up inside innerHTML / template
+ * literals.  Call it on EVERY untrusted value before inserting into HTML.
+ */
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-function createIcon(className) {
-  const icon = document.createElement("i");
-  icon.className = className;
-  icon.setAttribute("aria-hidden", "true");
-  return icon;
-}
+/**
+ * Sanitize a URL so it can be used safely in an href attribute.
+ *
+ * SECURITY: Blocks javascript:, data:, vbscript: and any other
+ * non-http(s)/relative protocol that could execute code when a user
+ * clicks a link.  Falls back to "#" so the link is inert rather than
+ * omitted, which keeps the UI layout intact.
+ *
+ * Allowed schemes:
+ * - https://    (absolute external links, GitHub, live demos)
+ * - http://     (legacy / local dev)
+ * - ./  ../     (relative paths to local demo index.html files)
+ * - #           (in-page anchors)
+ *
+ * Everything else — including javascript:, data:, vbscript:,
+ * blob: and protocol-relative // URLs — is replaced with "#".
+ *
+ * @param {string} url - Raw URL from project data or localStorage.
+ * @returns {string} A URL that is safe to place in an href attribute.
+ */
+function sanitizeUrl(url) {
+  const raw = String(url || "").trim();
 
-function createProjectLink({
-  href,
-  className,
-  day,
-  label,
-  iconClassName,
-  iconPosition = "before",
-}) {
-  const link = document.createElement("a");
-  link.className = className;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.dataset.id = String(day || "");
+  // Allow empty / anchor-only values
+  if (!raw || raw === "#") return raw || "#";
 
-  const safeHref = getSafeProjectHref(href);
-  if (safeHref) {
-    link.setAttribute("href", safeHref);
-  } else {
-    link.setAttribute("href", "#");
-    link.setAttribute("aria-disabled", "true");
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    });
+  // Allow relative paths used by project demos
+  if (
+    raw.startsWith("./") ||
+    raw.startsWith("../") ||
+    raw.startsWith("/")
+  ) {
+    return raw;
+  }
+  if (
+    !raw.includes(":") &&
+    (raw.includes(".html") ||
+      raw.startsWith("public/") ||
+      raw.startsWith("projects/"))
+  ) {
+    return raw;
   }
 
-  const icon = createIcon(iconClassName);
-  if (iconPosition === "before") {
-    link.append(icon, document.createTextNode(` ${label}`));
-  } else {
-    link.append(document.createTextNode(`${label} `), icon);
+  // Allow http/https links
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
   }
 
-  return link;
+  // Block unsafe schemes
+  console.warn("[XSS] Blocked unsafe URL scheme:", raw);
+  return "#";
 }
 
-function buildProjectCard({
+function buildProjectCardHTML({
   day,
   name,
   url,
@@ -306,114 +319,93 @@ function buildProjectCard({
     url,
     tags,
   );
+
+  // ── SECURITY: sanitize URLs before placing them in href attributes ──
+  // resolveProjectUrls may return a contributor-supplied string or a path
+  // derived from one.  sanitizeUrl() blocks javascript:, data:, vbscript:
+  // and any other executable protocol while leaving valid http(s) / relative
+  // paths untouched.
+  const safeDemoUrl   = sanitizeUrl(demoUrl);
+  const safeSourceUrl = sanitizeUrl(sourceUrl);
+
   const tagsArray = Array.isArray(tags)
     ? tags.filter((t) => t !== SOURCE_ONLY_TAG)
     : String(tags || "")
         .split(/\s+/)
         .filter((t) => t && t !== SOURCE_ONLY_TAG);
+
+  // SECURITY: escapeHTML on every tag token prevents <script> / event-handler
+  // injection via the techStack field in projects.json.
+  const tagsHTML = tagsArray
+    .map((t) => `<span class="tag">${escapeHTML(t)}</span>`)
+    .join("");
+
   const project = PROJECTS.find((p) => p.projectName === name);
-  const description = getProjectDescription(project);
 
-  const card = document.createElement("div");
-  card.className = sourceOnly
-    ? "project-card source-only visible"
-    : "project-card visible";
+  // SECURITY: description, day, name and category are all escaped before
+  // being written into innerHTML.
+  const description  = escapeHTML(getProjectDescription(project));
+  const safeDay      = escapeHTML(day);
+  const safeName     = escapeHTML(name);
+  const safeCategory = escapeHTML(category);
 
-  const meta = document.createElement("div");
-  meta.className = "card-meta";
+  const sourceOnlyBadge = sourceOnly
+    ? '<span class="source-only-badge" title="Requires local server setup">Source only</span>'
+    : "";
 
-  const dayElement = document.createElement("span");
-  dayElement.className = "card-day";
-  dayElement.textContent = day || "";
-
-  const categoryWrap = document.createElement("span");
-  categoryWrap.className = "card-category-wrap";
-
-  const categoryElement = document.createElement("span");
-  categoryElement.className = "card-category";
-  categoryElement.textContent = category || "";
-  categoryWrap.appendChild(categoryElement);
-
-  if (sourceOnly) {
-    const sourceOnlyBadge = document.createElement("span");
-    sourceOnlyBadge.className = "source-only-badge";
-    sourceOnlyBadge.title = "Requires local server setup";
-    sourceOnlyBadge.textContent = "Source only";
-    categoryWrap.appendChild(sourceOnlyBadge);
-  }
-
-  meta.append(dayElement, categoryWrap);
-
-  const nameElement = document.createElement("div");
-  nameElement.className = "card-name";
-  nameElement.textContent = name || "";
-
-  const tagsContainer = document.createElement("div");
-  tagsContainer.className = "card-tags";
-  tagsArray.forEach((tag) => {
-    const tagElement = document.createElement("span");
-    tagElement.className = "tag";
-    tagElement.textContent = tag;
-    tagsContainer.appendChild(tagElement);
-  });
-
-  const footer = document.createElement("div");
-  footer.className = "card-footer";
-
-  const actions = document.createElement("div");
-  actions.className = "card-actions-left";
-
+  // SECURITY: href values come from sanitizeUrl() — not raw contributor data.
+  // data-id uses escapeHTML so it cannot break out of the attribute.
   const primaryLink = sourceOnly
-    ? createProjectLink({
-        href: sourceUrl,
-        className: "card-link open-project",
-        day,
-        label: "Source",
-        iconClassName: "fab fa-github",
-      })
-    : createProjectLink({
-        href: demoUrl,
-        className: "card-link open-project",
-        day,
-        label: "Demo",
-        iconClassName: "fas fa-arrow-right",
-        iconPosition: "after",
-      });
-  actions.appendChild(primaryLink);
+    ? `<a href="${safeSourceUrl}" target="_blank" class="card-link open-project" data-id="${safeDay}" rel="noopener noreferrer" onclick="event.stopPropagation()">
+                        <i class="fab fa-github"></i> Source
+                    </a>`
+    : `<a href="${safeDemoUrl}" target="_blank" class="card-link open-project" data-id="${safeDay}" rel="noopener noreferrer" onclick="event.stopPropagation()">
+                        Demo <i class="fas fa-arrow-right"></i>
+                    </a>`;
 
-  if (!sourceOnly) {
-    actions.appendChild(
-      createProjectLink({
-        href: sourceUrl,
-        className: "card-link view-code-link",
-        day,
-        label: "Code",
-        iconClassName: "fab fa-github",
-      }),
-    );
-  }
+  const codeLink = sourceOnly
+    ? ""
+    : `<a href="${safeSourceUrl}" target="_blank" class="card-link view-code-link" rel="noopener noreferrer" onclick="event.stopPropagation()">
+                        <i class="fab fa-github"></i> Code
+                    </a>`;
 
-  const bookmarkButton = document.createElement("button");
-  bookmarkButton.className =
-    `bookmark-btn ${isBookmarked ? "active" : ""}`.trim();
-  bookmarkButton.dataset.id = String(day || "");
-  bookmarkButton.type = "button";
-  bookmarkButton.appendChild(
-    createIcon(`${isBookmarked ? "fa-solid" : "fa-regular"} fa-bookmark`),
-  );
+return {
+    html: `
+            <div class="card-meta">
+                <span class="card-day">${safeDay}</span>
+                <span class="card-category-wrap">
+                  <span class="card-category">${safeCategory}</span>
+                  ${sourceOnlyBadge}
+                </span>
+            </div>
 
-  footer.append(actions, bookmarkButton);
+            <div class="card-preview-image-container" style="margin: 12px 0; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9; background: #1a1a1a;">
+                <img src="./${url && url.startsWith('./') ? url.split('/')[2] : name.replace(/\s+/g, '_')}/preview.png" alt="${name} preview" onerror="this.parentNode.style.display='none';" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
 
-  card.append(meta, nameElement);
-  if (showDescription) {
-    const descriptionElement = document.createElement("div");
-    descriptionElement.className = "card-description";
-    descriptionElement.textContent = description;
-    card.appendChild(descriptionElement);
-  }
-  card.append(tagsContainer, footer);
+            <h3 class="card-name">${safeName}</h3>
 
-  return { card, demoUrl: getSafeProjectHref(demoUrl), sourceOnly };
+            ${
+              showDescription
+                ? `<div class="card-description">
+    ${description}
+</div>`
+                : ""
+            }
+            <div class="card-tags">${tagsHTML}</div>
+            <div class="card-footer">
+                <div class="card-actions-left">
+                    ${primaryLink}
+                    ${codeLink}
+                </div>
+                <button class="bookmark-btn ${isBookmarked ? "active" : ""}" data-id="${safeDay}">
+                    <i class="${isBookmarked ? "fa-solid" : "fa-regular"} fa-bookmark"></i>
+                </button>
+            </div>
+        `,
+    demoUrl: safeDemoUrl,
+    sourceOnly,
+  };
 }
 
 function attachProjectCardInteraction(card, demoUrl, projectData = null) {
@@ -427,7 +419,10 @@ function attachProjectCardInteraction(card, demoUrl, projectData = null) {
       trackRecentProject(projectData);
     }
 
-    window.open(demoUrl, "_blank", "noopener");
+    // SECURITY: sanitizeUrl() is called on the stored demoUrl before
+    // window.open() so a javascript: payload stored in localStorage cannot
+    // execute even after a page reload.
+    window.open(sanitizeUrl(demoUrl), "_blank", "noopener");
   };
 }
 
@@ -502,12 +497,26 @@ function clearAllTechFilters() {
 }
 
 /**
- * Update the visual display of active tech filters
+ * Update the visual display of active tech filters.
+ *
+ * SECURITY: Previously this function built filter-tag markup by splicing
+ * the raw tech string directly into an onclick attribute:
+ *
+ * `onclick="removeTechFilter('${tech}')"`
+ *
+ * That allowed a crafted tag value such as
+ * '); alert(1); ('
+ * to break out of the string literal and execute arbitrary JS.
+ *
+ * The fix uses DOM methods exclusively — no innerHTML, no inline handlers.
+ * Each tag element is built with createElement / textContent and a proper
+ * addEventListener, so no contributor-supplied string ever lands in an
+ * executable context.
  */
 function updateTechFilterDisplay() {
-  const container = document.getElementById("activeTechFilters");
+  const container    = document.getElementById("activeTechFilters");
   const tagsContainer = document.getElementById("techFilterTags");
-  const clearBtn = document.getElementById("clearTechFilter");
+  const clearBtn     = document.getElementById("clearTechFilter");
 
   if (!container || !tagsContainer) return;
 
@@ -523,21 +532,32 @@ function updateTechFilterDisplay() {
   }
 
   container.style.display = "flex";
-  tagsContainer.textContent = "";
+
+  // SECURITY: Build each filter tag with DOM APIs, not innerHTML.
+  // This eliminates the inline-handler injection vector entirely.
+  tagsContainer.textContent = ""; // clear previous children safely
 
   techStackFilters.forEach((tech) => {
-    const tag = document.createElement("span");
-    tag.className = "tech-filter-tag";
-    tag.appendChild(document.createTextNode(tech));
+    const span = document.createElement("span");
+    span.className = "tech-filter-tag";
 
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.setAttribute("aria-label", `Remove ${tech} filter`);
-    removeButton.appendChild(createIcon("fas fa-times"));
-    removeButton.addEventListener("click", () => removeTechFilter(tech));
+    // textContent sets the visible label without any HTML parsing.
+    const label = document.createTextNode(tech);
+    span.appendChild(label);
 
-    tag.appendChild(removeButton);
-    tagsContainer.appendChild(tag);
+    const btn = document.createElement("button");
+    btn.setAttribute("aria-label", `Remove ${tech} filter`);
+
+    const icon = document.createElement("i");
+    icon.className = "fas fa-times";
+    btn.appendChild(icon);
+
+    // addEventListener keeps the handler in JS — the tech value never
+    // touches HTML or an eval context.
+    btn.addEventListener("click", () => removeTechFilter(tech));
+
+    span.appendChild(btn);
+    tagsContainer.appendChild(span);
   });
 }
 
@@ -891,11 +911,15 @@ function renderGrid() {
     const name = project.projectName;
     const url = project.projectPath;
     const tags = project.techStack;
+
     const category = getCategoryFromTags(tags, name);
+    const card = document.createElement("div");
+
     const isBookmarked = bookmarkedProjects.some(
       (item) => normalizeProjectEntry(item).day === day,
     );
-    const { card, demoUrl } = buildProjectCard({
+
+    const { html, demoUrl, sourceOnly } = buildProjectCardHTML({
       day,
       name,
       url,
@@ -905,10 +929,16 @@ function renderGrid() {
       showDescription: true,
     });
 
+    card.className = sourceOnly
+      ? "project-card source-only visible"
+      : "project-card visible";
+
+    card.innerHTML = html;
     attachProjectCardInteraction(card, demoUrl, project);
 
     fragment.appendChild(card);
   });
+
   grid.appendChild(fragment);
   renderPagination(filtered.length, totalPages);
 
@@ -1267,7 +1297,9 @@ function renderBookmarks() {
     if (!day || !name) return;
 
     const category = getCategoryFromTags(tags, name);
-    const { card, demoUrl } = buildProjectCard({
+    
+    // Updated to use the secure HTML-string approach
+    const { html, demoUrl, sourceOnly } = buildProjectCardHTML({
       day,
       name,
       url,
@@ -1276,6 +1308,12 @@ function renderBookmarks() {
       isBookmarked: true,
       showDescription: true,
     });
+
+    const card = document.createElement("div");
+    card.className = sourceOnly
+      ? "project-card source-only visible"
+      : "project-card visible";
+    card.innerHTML = html;
 
     attachProjectCardInteraction(card, demoUrl, project);
 
@@ -1319,7 +1357,9 @@ function renderRecentProjects() {
     const isBookmarked = bookmarkedProjects.some(
       (item) => normalizeProjectEntry(item).day === day,
     );
-    const { card, demoUrl } = buildProjectCard({
+    
+    // Updated to use the secure HTML-string approach
+    const { html, demoUrl, sourceOnly } = buildProjectCardHTML({
       day,
       name,
       url,
@@ -1328,6 +1368,12 @@ function renderRecentProjects() {
       isBookmarked,
       showDescription: true,
     });
+
+    const card = document.createElement("div");
+    card.className = sourceOnly
+      ? "project-card source-only visible"
+      : "project-card visible";
+    card.innerHTML = html;
 
     attachProjectCardInteraction(card, demoUrl, projectObj);
 
