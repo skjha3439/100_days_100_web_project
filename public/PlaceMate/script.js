@@ -395,6 +395,13 @@ updateBtn.addEventListener("click", () => {
   development
   });
 
+  updateAIInsights(
+  communication,
+  development,
+  aptitude,
+  resume
+  );
+
 
   const companyGrid =
     document.getElementById("companyGrid");
@@ -439,6 +446,100 @@ updateBtn.addEventListener("click", () => {
   }
 
 });
+
+function updateAIInsights(
+  communication,
+  development,
+  aptitude,
+  resume
+){
+
+  const weakAreas =
+    document.getElementById(
+      "weakAreas"
+    );
+
+  const recommendedActions =
+    document.getElementById(
+      "recommendedActions"
+    );
+
+  weakAreas.innerHTML = "";
+  recommendedActions.innerHTML = "";
+
+  const weaknesses = [];
+  const actions = [];
+
+  if (communication < 75) {
+
+    weaknesses.push(
+      "Communication"
+    );
+
+    actions.push(
+      "Practice HR questions"
+    );
+  }
+
+  if (development < 75) {
+
+    weaknesses.push(
+      "Development"
+    );
+
+    actions.push(
+      "Build one full-stack project"
+    );
+  }
+
+  if (aptitude < 75) {
+
+    weaknesses.push(
+      "Aptitude"
+    );
+
+    actions.push(
+      "Solve aptitude quizzes daily"
+    );
+  }
+
+  if (resume < 75) {
+
+    weaknesses.push(
+      "Resume"
+    );
+
+    actions.push(
+      "Improve project descriptions"
+    );
+  }
+
+  if (
+    weaknesses.length === 0
+  ) {
+
+    weakAreas.innerHTML =
+      "<li>No major weak areas detected 🎉</li>";
+
+    recommendedActions.innerHTML =
+      "<li>Keep practicing consistently</li>";
+
+    return;
+  }
+
+  weaknesses.forEach(item => {
+
+    weakAreas.innerHTML +=
+      `<li>${item}</li>`;
+  });
+
+  actions.forEach(item => {
+
+    recommendedActions.innerHTML +=
+      `<li>${item}</li>`;
+  });
+}
+
 function saveUserData(data) {
 
   localStorage.setItem(
@@ -717,7 +818,43 @@ function loadUserData() {
   updateBtn.click();
 }
 window.addEventListener("load", () => {
+
   loadUserData();
+
+  const communication =
+    parseInt(
+      document.getElementById(
+        "communicationInput"
+      ).value
+    );
+
+  const development =
+    parseInt(
+      document.getElementById(
+        "developmentInput"
+      ).value
+    );
+
+  const aptitude =
+    parseInt(
+      document.getElementById(
+        "aptitudeInput"
+      ).value
+    );
+
+  const resume =
+    parseInt(
+      document.getElementById(
+        "resumeInput"
+      ).value
+    );
+
+  updateAIInsights(
+    communication,
+    development,
+    aptitude,
+    resume
+  );
 });
 
 /* =========================
