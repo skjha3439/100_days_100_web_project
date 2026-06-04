@@ -87,6 +87,9 @@ body.dark-mode .app-section {
   gap: 0.7rem;
   cursor: pointer;
 }
+body.dark-mode .popular-localities .title {
+  color: white;
+}
 
 .radio-option label {
   cursor: pointer;
@@ -227,4 +230,24 @@ body.dark-mode .app-section .caption {
   .app-section .option-selector {
     font-size: 1.5rem;
   }
+}
+
+#darkModeToggle {
+  width: 40px;
+  height: 40px;
+
+  border-radius: 50%;          /* circle */
+   border: 2px solid #ff4d4d;     /* red outline */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;     /* no background */
+  cursor: pointer;
+
+  font-size: 22px;             /* icon size */
+   border: 2px solid #ff4d4d;                  /* icon color */
+
+  transition: 0.3s ease;
 }
