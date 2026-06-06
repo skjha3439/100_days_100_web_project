@@ -838,7 +838,7 @@ function getNumericColumns() {
 }
 
 async function generateMLRecommendationWithGroq() {
-  const apiKey = localStorage.getItem("groq_api_key");
+  const apiKey = groqApiInput.value.trim();
 
   if (!apiKey) return;
 
@@ -934,7 +934,7 @@ async function generateAIInsightsWithGroq(datasetInfo) {
   document.getElementById("trendInsightText").textContent =
     "Generating AI insight...";
 
-  const apiKey = localStorage.getItem("groq_api_key");
+  const apiKey = groqApiInput.value.trim();
 
   if (!apiKey) return;
 
@@ -1060,23 +1060,22 @@ Return ONLY valid JSON.
 // API KEY MANAGEMENT
 // =========================
 
-// Pre-fill saved key on load
-window.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("groq_api_key");
-  if (saved && groqApiInput) groqApiInput.value = saved;
-});
-
 saveApiKeyBtn?.addEventListener("click", () => {
-  localStorage.setItem("groq_api_key", groqApiInput.value);
-  saveApiKeyBtn.textContent = "✓ Saved!";
+  if (!groqApiInput.value.trim()) {
+    alert("Please enter a Groq API key.");
+    return;
+  }
+
+  saveApiKeyBtn.textContent = "✓ API Key Ready";
+
   setTimeout(() => {
-    saveApiKeyBtn.innerHTML = '<i data-lucide="save"></i> Save API Key';
+    saveApiKeyBtn.innerHTML = '<i data-lucide="save"></i> API Key Loaded';
     lucide.createIcons();
   }, 1800);
 });
 
 async function generateGroqSummary() {
-  const apiKey = localStorage.getItem("groq_api_key");
+  const apiKey = groqApiInput.value.trim();
 
   if (!apiKey) {
     document.getElementById("executiveSummary").innerHTML = `
@@ -1158,7 +1157,7 @@ Keep response concise.
 askDatasetBtn?.addEventListener("click", askDatasetQuestion);
 
 async function askDatasetQuestion() {
-  const apiKey = localStorage.getItem("groq_api_key");
+  const apiKey = groqApiInput.value.trim();
 
   if (!apiKey) {
     datasetAnswer.innerHTML = `<p>Please add a Groq API key first.</p>`;
