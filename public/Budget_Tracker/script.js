@@ -280,6 +280,8 @@ function updateSummary() {
   animateNumber(expenseEl, expense);
 
   balanceEl.style.color = balance < 0 ? "#ff4d4d" : "#00c853";
+
+  balanceEl.style.color = balance < 0 ? "#ff4d4d" : "#00c853";
 }
 
 /* =========================================================
