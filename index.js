@@ -227,7 +227,7 @@ function resolveProjectUrls(day, name, url, tags) {
       }
     } catch (error) { }
   }
-  if (day === "Day 214") {
+  if (day === "Day 222") {
     return {
       demoUrl: "https://html-css-animation-01.netlify.app/",
       sourceUrl: "https://github.com/dhairyagothi/100_day_100_web_project/blob/Main/public/Html_css_animation/index.html",
@@ -2409,8 +2409,8 @@ function applyFilters(search, category) {
   renderGrid();
 }
 
-document.addEventListener("DOMContentLoaded",  () => {
- 
+document.addEventListener("DOMContentLoaded", () => {
+
   const searchInput =
     document.getElementById("search") ||
     document.querySelector('input[type="text"]') ||
