@@ -347,8 +347,6 @@ function buildProjectCardHTML({
       .split(/\s+/)
       .filter((t) => t && t !== SOURCE_ONLY_TAG);
 
-  // SECURITY: escapeHTML on every tag token prevents <script> / event-handler
-  // injection via the techStack field in projects.json.
   const tagsHTML = tagsArray
     .map((t) => `<span class="tag">${escapeHTML(t)}</span>`)
     .join("");
@@ -374,8 +372,6 @@ function buildProjectCardHTML({
     ? '<span class="source-only-badge" title="Requires local server setup">Source only</span>'
     : "";
 
-  // SECURITY: href values come from sanitizeUrl() — not raw contributor data.
-  // data-id uses escapeHTML so it cannot break out of the attribute.
   const primaryLink = sourceOnly
     ? `<a href="${safeSourceUrl}" target="_blank" class="card-link open-project" data-id="${safeDay}" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="View source of ${safeName} (opens in a new tab)">
                         <i class="fab fa-github" aria-hidden="true"></i> Source
@@ -441,14 +437,10 @@ function attachProjectCardInteraction(card, demoUrl, projectData = null) {
     if (e.target.closest("a, button")) return;
     if (!demoUrl) return;
 
-    // Track the project visit if projectData is provided
     if (projectData) {
       trackRecentProject(projectData);
     }
 
-    // SECURITY: sanitizeUrl() is called on the stored demoUrl before
-    // window.open() so a javascript: payload stored in localStorage cannot
-    // execute even after a page reload.
     window.open(sanitizeUrl(demoUrl), "_blank", "noopener");
   };
 
@@ -456,7 +448,6 @@ function attachProjectCardInteraction(card, demoUrl, projectData = null) {
 
   card.onkeydown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
-      // Prevent page scrolling on spacebar when card is focused
       if (e.key === " ") {
         e.preventDefault();
       }
@@ -469,34 +460,15 @@ function attachProjectCardInteraction(card, demoUrl, projectData = null) {
    TECHNOLOGY STACK FILTERING FUNCTIONS
    ============================================================ */
 
-/**
- * Normalize technology name for consistent matching
- * SIMPLIFIED: Just lowercase, no complex aliases needed
- * @param {string} tech - Technology name to normalize
- * @returns {string} Normalized technology name
- */
 function normalizeTech(tech) {
   const lower = tech.toLowerCase().trim();
-  // Only handle common variations
   return TECH_ALIASES[lower] || lower;
 }
 
-/**
- * Check if project matches the active tech stack filters.
- * Each filter must match a complete tag token, not a substring of another tag.
- * Example: searching "java" must not return projects tagged "javascript".
- * @param {string|array} projectTags - Project tags (space-separated string or array)
- * @returns {boolean} True if project matches all active filters
- */
 function matchesTechStack(projectTags) {
-  // No filters = show all projects
   if (techStackFilters.length === 0) return true;
-
-  // Handle empty or missing tags
   if (!projectTags) return false;
 
-  // Normalize to a set of individual lowercase tokens for whole-word matching.
-  // Using a Set avoids repeated linear scans for each filter.
   const tagSet = new Set(
     (Array.isArray(projectTags)
       ? projectTags
@@ -506,24 +478,15 @@ function matchesTechStack(projectTags) {
       .filter(Boolean),
   );
 
-  // Every active filter must match an exact token in the tag set (AND logic).
-  // This prevents "java" from matching "javascript", "css" from matching "canvas", etc.
   return techStackFilters.every((filter) => tagSet.has(filter.toLowerCase()));
 }
 
-/**
- * Remove a specific technology filter
- * @param {string} tech - Technology to remove from filters
- */
 function removeTechFilter(tech) {
   techStackFilters = techStackFilters.filter((t) => t !== tech);
   updateTechFilterDisplay();
   renderGrid();
 }
 
-/**
- * Clear all technology filters
- */
 function clearAllTechFilters() {
   techStackFilters = [];
   techSearchQuery = "";
@@ -535,23 +498,6 @@ function clearAllTechFilters() {
   renderGrid();
 }
 
-/**
- * Update the visual display of active tech filters.
- *
- * SECURITY: Previously this function built filter-tag markup by splicing
- * the raw tech string directly into an onclick attribute:
- *
- * `onclick="removeTechFilter('${tech}')"`
- *
- * That allowed a crafted tag value such as
- * '); alert(1); ('
- * to break out of the string literal and execute arbitrary JS.
- *
- * The fix uses DOM methods exclusively — no innerHTML, no inline handlers.
- * Each tag element is built with createElement / textContent and a proper
- * addEventListener, so no contributor-supplied string ever lands in an
- * executable context.
- */
 function updateTechFilterDisplay() {
   const container = document.getElementById("activeTechFilters");
   const tagsContainer = document.getElementById("techFilterTags");
@@ -559,12 +505,10 @@ function updateTechFilterDisplay() {
 
   if (!container || !tagsContainer) return;
 
-  // Show/hide clear button in search input
   if (clearBtn) {
     clearBtn.style.display = techStackFilters.length > 0 ? "block" : "none";
   }
 
-  // Show/hide active filters container
   if (techStackFilters.length === 0) {
     container.style.display = "none";
     return;
@@ -572,15 +516,12 @@ function updateTechFilterDisplay() {
 
   container.style.display = "flex";
 
-  // SECURITY: Build each filter tag with DOM APIs, not innerHTML.
-  // This eliminates the inline-handler injection vector entirely.
-  tagsContainer.textContent = ""; // clear previous children safely
+  tagsContainer.textContent = "";
 
   techStackFilters.forEach((tech) => {
     const span = document.createElement("span");
     span.className = "tech-filter-tag";
 
-    // textContent sets the visible label without any HTML parsing.
     const label = document.createTextNode(tech);
     span.appendChild(label);
 
@@ -592,8 +533,6 @@ function updateTechFilterDisplay() {
     icon.setAttribute("aria-hidden", "true");
     btn.appendChild(icon);
 
-    // addEventListener keeps the handler in JS — the tech value never
-    // touches HTML or an eval context.
     btn.addEventListener("click", () => removeTechFilter(tech));
 
     span.appendChild(btn);
@@ -601,11 +540,6 @@ function updateTechFilterDisplay() {
   });
 }
 
-/**
- * Get all unique technologies from projects (optional utility)
- * EFFICIENT: Uses Set for O(1) lookups
- * @returns {array} Sorted array of unique technologies
- */
 function getAllTechnologies() {
   const techSet = new Set();
 
@@ -651,19 +585,13 @@ let showAllRecent = false;
 const INITIAL_VISIBLE_ITEMS = 3;
 const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour in milliseconds
 
-/**
- * Migrates old recent projects format (array) to new format (object with timestamp)
- * If stored format doesn't have timestamps, it's likely the old format
- */
 function migrateRecentProjects() {
   if (recentProjects.length === 0) return;
 
-  // Check if already in new format (has timestamp)
   if (typeof recentProjects[0] === "object" && recentProjects[0].timestamp) {
-    return; // Already migrated
+    return;
   }
 
-  // Migrate old format [day, name, url, tags] to new format {day, name, url, tags, timestamp}
   recentProjects = recentProjects.map((project) => {
     if (Array.isArray(project)) {
       return {
@@ -671,7 +599,7 @@ function migrateRecentProjects() {
         name: project[1],
         url: project[2],
         tags: project[3],
-        timestamp: Date.now() - ONE_HOUR_MS / 2, // Set to 30 mins ago to preserve them initially
+        timestamp: Date.now() - ONE_HOUR_MS / 2,
       };
     }
     return project;
@@ -687,10 +615,6 @@ function migrateRecentProjects() {
 // Migrate on load
 migrateRecentProjects();
 
-/**
- * Cleans up recent projects older than 1 hour
- * Called periodically and on page load
- */
 function cleanupExpiredRecentProjects() {
   const initialLength = recentProjects.length;
   recentProjects = getRecentProjectsWithinWindow();
@@ -731,7 +655,6 @@ async function fetchRepoStats() {
   };
 
   try {
-    // Optional loading state
     set("starCount", "Loading...");
     set("forkCount", "Loading...");
     set("issueCount", "Loading...");
@@ -755,11 +678,6 @@ async function fetchRepoStats() {
 
     set("starCount", repo.stargazers_count.toLocaleString());
     set("forkCount", repo.forks_count.toLocaleString());
-    // GitHub's open_issues_count includes pull requests. Subtracting the PR
-    // count gives a closer approximation of open issues. The search API can
-    // return a total_count higher than the number accounted for in
-    // open_issues_count due to index lag or repository forks, which would
-    // produce a negative result without the clamp.
     set(
       "issueCount",
       Math.max(0, repo.open_issues_count - prs.total_count).toLocaleString(),
@@ -767,11 +685,10 @@ async function fetchRepoStats() {
     set("prCount", prs.total_count.toLocaleString());
   } catch (e) {
     console.warn("GitHub stats unavailable:", e.message);
-
-    // Show fallback text instead of permanent dashes
     setFallback();
   }
 }
+
 function generateReadme() {
   try {
     const lines = [];
@@ -883,7 +800,7 @@ function renderGrid() {
     const matchesFilter =
       activeFilter === "all" || category === targetCategory;
 
-    // Search filter (matches name, description, day, and technology tags)
+    // Search filter
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
@@ -1020,7 +937,6 @@ function renderPagination(totalItems, totalPages) {
 
   container.innerHTML = "";
 
-  // If there is only 1 page of results, hide and detach the pagination block
   if (totalPages <= 1) {
     if (container.parentElement === grid) {
       grid.removeChild(container);
@@ -1028,7 +944,6 @@ function renderPagination(totalItems, totalPages) {
     return;
   }
 
-  // Render showing info range (e.g. "Showing 1 to 9 of 100")
   const infoDiv = document.createElement("div");
   infoDiv.className = "pagination-info";
   const startItem = (currentPage - 1) * itemsPerPage + 1;
@@ -1065,7 +980,6 @@ function renderPagination(totalItems, totalPages) {
     if (currentPage > 1) {
       currentPage--;
       renderGrid();
-      // Delay scrolling by 50ms to allow DOM layout to recalculate and stabilize after cards redraw
       setTimeout(() => {
         scrollToProjectSection();
       }, 50);
@@ -1073,12 +987,10 @@ function renderPagination(totalItems, totalPages) {
   });
   controlsDiv.appendChild(prevBtn);
 
-  // Initialize bounds for numeric pagination window (displays maximum of 4 page buttons)
   let startPage = 1;
   let endPage = totalPages;
   const maxVisible = 4;
 
-  // Sliding window pagination logic centering the active page
   if (totalPages > maxVisible) {
     if (currentPage <= 2) {
       startPage = 1;
@@ -1101,7 +1013,6 @@ function renderPagination(totalItems, totalPages) {
       e.preventDefault();
       currentPage = i;
       renderGrid();
-      // Delay scrolling by 50ms to allow DOM layout to recalculate and stabilize after cards redraw
       setTimeout(() => {
         scrollToProjectSection();
       }, 50);
@@ -1119,13 +1030,13 @@ function renderPagination(totalItems, totalPages) {
     if (currentPage < totalPages) {
       currentPage++;
       renderGrid();
-      // Delay scrolling by 50ms to allow DOM layout to recalculate and stabilize after cards redraw
       setTimeout(() => {
         scrollToProjectSection();
       }, 50);
     }
   });
   controlsDiv.appendChild(nextBtn);
+
   const lastBtn = document.createElement("button");
   lastBtn.className = "last-btn";
   lastBtn.innerHTML = "Last ⏭";
@@ -1144,7 +1055,6 @@ function renderPagination(totalItems, totalPages) {
 
   container.appendChild(controlsDiv);
 
-  // Append container dynamically inside the projectGrid element to keep it attached
   grid.appendChild(container);
 }
 
@@ -1152,26 +1062,21 @@ function scrollToProjectSection() {
   const header = document.querySelector(".projects-header");
   if (!header) return;
 
-  // Only scroll if the projects section is fully below the viewport.
-  // If the user is already within or past the project grid, don't move them.
   if (header.getBoundingClientRect().top < window.innerHeight) return;
 
   const navbar = document.querySelector(".navbar");
-  // Subtract height of fixed navbar with a 50px buffer to prevent overlaying the search bar
   const offset = navbar ? navbar.offsetHeight - 50 : 30;
   const targetY =
     header.getBoundingClientRect().top + window.pageYOffset - offset;
   const startY = window.pageYOffset;
   const distance = targetY - startY;
 
-  // Custom snappy scroll duration (100ms matches the quick transitions in your CSS)
   const duration = 100;
   let startTime = null;
 
   function animation(currentTime) {
     if (startTime === null) startTime = currentTime;
     const timeElapsed = currentTime - startTime;
-    // Cap scroll position math exactly to distance to avoid landing slightly off target
     const run = easeInOutQuad(
       Math.min(timeElapsed, duration),
       startY,
@@ -1184,7 +1089,6 @@ function scrollToProjectSection() {
     }
   }
 
-  // Mathematical Quadratic Ease-In-Out formula for momentum-like deceleration
   function easeInOutQuad(t, b, c, d) {
     t /= d / 2;
     if (t < 1) return (c / 2) * t * t + b;
@@ -1269,12 +1173,7 @@ function getRecentProjectsWithinWindow() {
   });
 }
 
-/**
- * Tracks a recently viewed project with a timestamp
- * @param {array} project - Project data [day, name, url, tags]
- */
 function trackRecentProject(project) {
-  // Convert old format to new format if needed
   let projectObj;
   if (Array.isArray(project)) {
     projectObj = {
@@ -1291,13 +1190,9 @@ function trackRecentProject(project) {
     };
   }
 
-  // Remove duplicate if exists
   recentProjects = recentProjects.filter((item) => item.day !== projectObj.day);
-
-  // Add to front
   recentProjects.unshift(projectObj);
 
-  // Keep only the 20 most recent entries (not filtered by time yet)
   if (recentProjects.length > 20) {
     recentProjects.pop();
   }
@@ -1382,7 +1277,6 @@ function renderBookmarks() {
       (item) => normalizeProjectEntry(item).day === day,
     );
     
-    // Updated to use the secure HTML-string approach
     const { html, demoUrl, sourceOnly } = buildProjectCardHTML({
       day,
       name,
@@ -1415,7 +1309,6 @@ function renderRecentProjects() {
 
   recentGrid.innerHTML = "";
 
-  // Filter projects within the 1-hour window
   const validRecent = getRecentProjectsWithinWindow();
 
   if (validRecent.length === 0) {
@@ -1434,7 +1327,6 @@ function renderRecentProjects() {
     : validRecent.slice(0, INITIAL_VISIBLE_ITEMS);
 
   visibleRecent.forEach((projectObj) => {
-    // Handle both old array format and new object format
     const day = projectObj.day || projectObj[0];
     const name = projectObj.projectName || projectObj.name || projectObj[1];
     const url = projectObj.projectPath || projectObj.url || projectObj[2];
@@ -1448,7 +1340,6 @@ function renderRecentProjects() {
       (item) => normalizeProjectEntry(item).day === day,
     );
     
-    // Updated to use the secure HTML-string approach
     const { html, demoUrl, sourceOnly } = buildProjectCardHTML({
       day,
       name,
@@ -1588,7 +1479,6 @@ function updateClearFiltersBtnVisibility() {
 }
 
 function resetAllFilters() {
-  // 1. Reset Category filter chips
   const chips = document.querySelectorAll(".chip[data-filter]");
   chips.forEach((c) => c.classList.remove("active"));
   const allChip =
@@ -1597,32 +1487,26 @@ function resetAllFilters() {
   if (allChip) allChip.classList.add("active");
   activeFilter = "all";
 
-  // 2. Clear Search input
   const input = document.getElementById("searchInput");
   if (input) input.value = "";
   searchQuery = "";
 
-  // 3. Reset Tech Stack dropdown select
   const techStack = document.getElementById("techStackFilter");
   if (techStack) techStack.value = "all";
   techStackFilter = "all";
 
-  // 4. Reset Difficulty dropdown select
   const difficultyElement = document.getElementById("difficultyFilter");
   if (difficultyElement) difficultyElement.value = "all";
   difficultyFilter = "all";
 
-  // 5. Reset Sorting to default
   const sortSelect = document.getElementById("sortProjects");
   if (sortSelect) sortSelect.value = "default";
   sortOption = "default";
 
-  // 6. Sync URL
   if (typeof updateURL === "function") {
     updateURL("", "all");
   }
 
-  // 7. Refresh grid and pagination
   currentPage = 1;
   renderGrid();
   syncProjectCounts();
@@ -1686,7 +1570,6 @@ function initSearch() {
     }, 180),
   );
 
-  // Tech stack dropdown filter listener
   const techStack = document.getElementById("techStackFilter");
   if (techStack) {
     techStack.addEventListener("change", () => {
@@ -1696,7 +1579,6 @@ function initSearch() {
     });
   }
 
-  // Difficulty dropdown filter listener
   const diffFilterElement = document.getElementById("difficultyFilter");
   if (diffFilterElement) {
     diffFilterElement.addEventListener("change", () => {
@@ -1727,7 +1609,6 @@ function initTechStackSearch() {
 
   if (!input) return;
 
-  // Use the shared debounce utility instead of a manual inline timer
   input.addEventListener(
     "input",
     debounce((e) => {
@@ -1803,7 +1684,6 @@ function updateCategoryCounts(projects = PROJECTS) {
 function syncProjectCounts() {
   let filtered = [...PROJECTS];
 
-  // Apply search filter (matches name, description, day, and tags)
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(
@@ -1832,7 +1712,6 @@ function syncProjectCounts() {
   updateCategoryCounts(filtered);
 }
 
-// Clear button functionality
 if (searchInput && clearSearchBtn) {
   clearSearchBtn.addEventListener("click", () => {
     searchInput.value = "";
@@ -1848,8 +1727,6 @@ if (searchInput && clearSearchBtn) {
     }
   });
 }
-
-
 
 /* ============================================================
    NAVBAR — dynamic based on login state
@@ -1886,7 +1763,6 @@ function initScrollBtn() {
       ring.style.strokeDashoffset = circumference * (1 - progress);
     }
 
-    // Footer collision avoidance
     const footer = document.querySelector(".footer");
     if (footer) {
       const footerRect = footer.getBoundingClientRect();
@@ -1894,9 +1770,6 @@ function initScrollBtn() {
 
       if (footerRect.top < windowHeight) {
         const overlap = windowHeight - footerRect.top;
-        // Cap the upward movement to a maximum of 120px.
-        // This ensures it dodges the important bottom footer links but
-        // doesn't fly completely off the top of the screen when the footer is huge.
         const maxOverlap = Math.min(overlap, 120);
         btn.style.bottom = `calc(2rem + ${maxOverlap}px)`;
       } else {
@@ -1949,10 +1822,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await loadProjects();
 
-    // Repair and synchronize format of stored completed projects
     repairCompletedProjects();
 
-    // Refresh gamified UI with project details fully loaded
     updateGamifiedUI();
 
     syncProjectCounts();
@@ -2072,7 +1943,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 })();
 
-// Re-render the grid when the browser window is resized to adapt pagination density instantly
 window.addEventListener(
   "resize",
   debounce(() => {
@@ -2098,6 +1968,7 @@ function initTheme() {
 
 // Initialize the theme engine
 initTheme();
+
 // Custom cursor with accessibility, interactivity & fail-safe upgrades
 (function () {
   const outerCursor = document.querySelector(".cursor-ring--outer");
@@ -2110,9 +1981,7 @@ initTheme();
     let cursorEnabled = true;
     try {
       cursorEnabled = localStorage.getItem("customCursorEnabled") !== "false";
-    } catch (_) {
-      // Default to true if localStorage is blocked in sandboxed iframe
-    }
+    } catch (_) {}
     const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -2125,13 +1994,11 @@ initTheme();
       document.body.classList.add("custom-cursor-active");
     } else {
       document.body.classList.remove("custom-cursor-active");
-      // Reset styles if cursor is deactivated
       outerCursor.classList.remove("is-visible");
       innerCursor.classList.remove("is-visible");
     }
   };
 
-  // Expose function to global scope so it can be called from navbar.js when settings toggles
   window.updateCustomCursorState = updateCursorActivationState;
 
   const target = { x: 0, y: 0 };
@@ -2185,7 +2052,6 @@ initTheme();
     }
   });
 
-  // Watch for system accessibility media query changes
   const reducedMotionQuery = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
   );
@@ -2203,7 +2069,6 @@ initTheme();
     coarsePointerQuery.addListener(handleQueryChange);
   }
 
-  // Hover target animations (interactive micro-animations)
   const hoverTargets =
     'a, button, [role="button"], input, select, .chip, .project-card, .bookmark-btn';
 
@@ -2229,7 +2094,6 @@ initTheme();
     }
   });
 
-  // Initialize activation state
   updateCursorActivationState();
   requestAnimationFrame(update);
 })();
@@ -2471,7 +2335,6 @@ function applyFilters(search, category) {
   activeFilter = category || "all";
   currentPage = 1;
 
-  // Sync active chip selection with URL state
   const chips = document.querySelectorAll(".chip[data-filter]");
   chips.forEach((chip) => {
     if (chip.dataset.filter === activeFilter) {
@@ -2485,13 +2348,11 @@ function applyFilters(search, category) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-
   const searchInput =
     document.getElementById("search") ||
     document.querySelector('input[type="text"]') ||
     document.querySelector(".search-input");
   if (searchInput) {
-    // Debounced so rapid typing doesn't trigger a renderGrid() on every keystroke
     searchInput.addEventListener(
       "input",
       debounce(() => {
@@ -2516,6 +2377,7 @@ document.addEventListener("DOMContentLoaded", () => {
    GAMIFIED DEVELOPER TRACKER ENGINE
 ============================================================ */
 
+// Level configuration constants
 const LEVEL_THRESHOLDS = [
   { level: 1, name: "Script Kiddie", xp: 0 },
   { level: 2, name: "CSS Whisperer", xp: 100 },
@@ -2526,212 +2388,156 @@ const LEVEL_THRESHOLDS = [
   { level: 7, name: "Software Architect", xp: 4000 }
 ];
 
+// Helper: Calculate XP based on difficulty level
 function getProjectXP(difficulty) {
   const d = (difficulty || "").toLowerCase().trim();
   if (d === 'beginner' || d === 'easy') return 10;
   if (d === 'advanced' || d === 'hard' || d === 'expert') return 50;
-  return 25; // default / intermediate
+  return 25; // Default for intermediate
 }
 
+// Calculate total accumulated XP from the in-memory completedProjects array
 function calculateTotalXP() {
   let xp = 0;
-  if (!Array.isArray(completedProjects)) {
-    completedProjects = [];
-  }
   completedProjects.forEach(p => {
-    if (!p) return;
-    const normP = normalizeProjectEntry(p);
-    const original = PROJECTS.find(item => item.projectName === normP.name || item.day === normP.day);
-    const difficulty = original ? original.difficulty : (p.difficulty || "intermediate");
+    const normalized = normalizeProjectEntry(p);
+    // Look up full project data for difficulty, falling back to stored difficulty
+    const fullProject = PROJECTS_BY_DAY.get(normalized.day);
+    const difficulty = (fullProject && fullProject.difficulty) || p.difficulty || "intermediate";
     xp += getProjectXP(difficulty);
   });
   return xp;
 }
 
+// Determine current level based on total XP
 function calculateLevel(xp) {
   let current = LEVEL_THRESHOLDS[0];
-  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
-    if (xp >= LEVEL_THRESHOLDS[i].xp) {
-      current = LEVEL_THRESHOLDS[i];
-    } else {
-      break;
-    }
+  for (let t of LEVEL_THRESHOLDS) {
+    if (xp >= t.xp) current = t;
+    else break;
   }
   return current;
 }
 
-function getNextLevelDetails(xp) {
-  const current = calculateLevel(xp);
-  const currentIndex = LEVEL_THRESHOLDS.findIndex(t => t.level === current.level);
-  if (currentIndex < LEVEL_THRESHOLDS.length - 1) {
-    const next = LEVEL_THRESHOLDS[currentIndex + 1];
-    const prevXPRequired = current.xp;
-    const progressXP = xp - prevXPRequired;
-    const rangeXP = next.xp - prevXPRequired;
-    const percent = Math.min(Math.round((progressXP / rangeXP) * 100), 100);
-    return {
-      nextName: next.name,
-      nextXP: next.xp,
-      percent: percent,
-      remaining: next.xp - xp
-    };
-  } else {
-    return {
-      nextName: "Max Level!",
-      nextXP: xp,
-      percent: 100,
-      remaining: 0
-    };
-  }
-}
-
-function initStreak() {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const lastVisit = localStorage.getItem('lastVisitDate');
-  let streak = parseInt(localStorage.getItem('streakCount') || '0', 10);
-
-  if (!lastVisit) {
-    streak = 1;
-  } else {
-    const lastVisitDateObj = new Date(lastVisit);
-    const todayDateObj = new Date(todayStr);
-    const diffTime = todayDateObj.getTime() - lastVisitDateObj.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (lastVisit === todayStr) {
-      // Same day, streak unchanged
-    } else if (diffDays === 1) {
-      // Consecutive day!
-      streak += 1;
-    } else {
-      // Gap too large, reset streak
-      streak = 1;
-    }
-  }
-  localStorage.setItem('lastVisitDate', todayStr);
-  localStorage.setItem('streakCount', streak.toString());
-}
-
-function triggerLevelUpModal(levelInfo) {
-  const modal = document.createElement("div");
-  modal.className = "level-up-modal";
-  modal.innerHTML = `
-    <div class="level-up-modal-content">
-      <div class="level-up-star">⭐</div>
-      <h2>LEVEL UP!</h2>
-      <p class="modal-level-text">You have reached Level ${levelInfo.level}</p>
-      <p class="modal-title-text">${levelInfo.name}</p>
-      <button class="level-up-close-btn" onclick="this.closest('.level-up-modal').remove()">LFG! 🚀</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-}
-
-function updateGamifiedUI(prevLevel = null) {
-  const totalXP = calculateTotalXP();
-  const currentLevel = calculateLevel(totalXP);
-  const nextDetails = getNextLevelDetails(totalXP);
-
-  if (prevLevel && currentLevel.level > prevLevel.level) {
-    triggerLevelUpModal(currentLevel);
-  }
-
-  const userLevelBadge = document.getElementById("userLevelBadge");
-  const userCurrentXP = document.getElementById("userCurrentXP");
-  const userNextXP = document.getElementById("userNextXP");
-  const userXPBarFill = document.getElementById("userXPBarFill");
-
-  if (userLevelBadge) {
-    userLevelBadge.textContent = `Level ${currentLevel.level}: ${currentLevel.name}`;
-  }
-  if (userCurrentXP) {
-    userCurrentXP.textContent = `${totalXP} Total XP`;
-  }
-  if (userNextXP) {
-    if (nextDetails.remaining > 0) {
-      userNextXP.textContent = `${nextDetails.remaining} XP to Level ${currentLevel.level + 1} (${nextDetails.nextName})`;
-    } else {
-      userNextXP.textContent = "Max Level Reached! You are a master.";
-    }
-  }
-  if (userXPBarFill) {
-    userXPBarFill.style.width = `${nextDetails.percent}%`;
-  }
-
-  const userStreakBadge = document.getElementById("userStreakBadge");
-  if (userStreakBadge) {
-    const streak = parseInt(localStorage.getItem("streakCount") || "1", 10);
-    userStreakBadge.textContent = `🔥 ${streak} Day Streak`;
-  }
-}
-
+/**
+ * Repair and normalize any legacy entries in completedProjects.
+ *
+ * Old format may be plain day strings ("Day 5"), arrays, or objects
+ * without a .day property.  After repair every entry is a plain object
+ * with at least { day }.  This runs once on DOMContentLoaded after
+ * PROJECTS is hydrated.
+ */
 function repairCompletedProjects() {
-  if (!Array.isArray(completedProjects)) {
-    completedProjects = [];
-    return;
-  }
-  completedProjects = completedProjects.map(item => {
-    if (!item) return null;
-    let day = "";
-    if (typeof item === 'string') {
-      day = item;
-    } else if (Array.isArray(item)) {
-      day = item[0];
-    } else {
-      day = item.day;
-    }
-    const match = PROJECTS.find(p => p.day === day);
-    return match || item;
-  }).filter(Boolean);
-  
+  completedProjects = completedProjects.map((entry) => {
+    const normalized = normalizeProjectEntry(entry);
+    // Merge full project data so difficulty is always available
+    const fullProject = PROJECTS_BY_DAY.get(normalized.day);
+    return fullProject
+      ? { ...fullProject }
+      : { day: normalized.day, name: normalized.name, url: normalized.url, tags: normalized.tags };
+  }).filter((entry) => Boolean(entry.day));
+
   try {
     localStorage.setItem("completedProjects", JSON.stringify(completedProjects));
-  } catch (err) {
-    console.warn("Could not save repaired completed projects", err);
+  } catch (error) {
+    console.warn("Could not persist repaired completedProjects:", error.message);
   }
 }
 
+/**
+ * Toggle completion status for a project.
+ *
+ * FIX: Previously this function read from localStorage directly into a local
+ * variable, mutated it, then called renderGrid() — but renderGrid() reads
+ * from the module-level `completedProjects` array which was never updated,
+ * so the button state never changed visually.
+ *
+ * Now we mutate the module-level `completedProjects` array in-place and
+ * persist it, matching the pattern used by toggleBookmark().
+ */
 function toggleCompleted(project) {
-  const normProject = normalizeProjectEntry(project);
-  const day = normProject.day;
-  const isCompleted = completedProjects.some(p => normalizeProjectEntry(p).day === day);
+  // Normalise to get a reliable .day key regardless of input shape
+  const projectDay = normalizeProjectEntry(project).day;
 
-  const prevXP = calculateTotalXP();
-  const prevLevel = calculateLevel(prevXP);
-  
-  const difficulty = project.difficulty || normProject.difficulty || "intermediate";
+  const isCompleted = completedProjects.some(
+    (item) => normalizeProjectEntry(item).day === projectDay,
+  );
+
+  // Look up full project data so we have the difficulty for XP calculation
+  const fullProject = PROJECTS_BY_DAY.get(projectDay) || project;
+  const difficulty = fullProject.difficulty || project.difficulty || "intermediate";
 
   if (isCompleted) {
-    completedProjects = completedProjects.filter(p => normalizeProjectEntry(p).day !== day);
-    localStorage.setItem("completedProjects", JSON.stringify(completedProjects));
+    // Remove from module-level array
+    completedProjects = completedProjects.filter(
+      (item) => normalizeProjectEntry(item).day !== projectDay,
+    );
     showToast(`Removed from Completed: -${getProjectXP(difficulty)} XP`);
   } else {
-    // Check if not already added to avoid duplicates
-    if (!completedProjects.some(p => normalizeProjectEntry(p).day === day)) {
-      completedProjects.push(project);
-      localStorage.setItem("completedProjects", JSON.stringify(completedProjects));
-    }
+    // Push the full project object so difficulty is preserved for XP calcs
+    completedProjects.push(fullProject);
     showToast(`🎉 Project Completed! +${getProjectXP(difficulty)} XP Earned`);
   }
 
-  updateGamifiedUI(prevLevel);
+  // Persist updated array to localStorage
+  try {
+    localStorage.setItem("completedProjects", JSON.stringify(completedProjects));
+  } catch (error) {
+    console.warn("Could not save completed projects:", error.message);
+  }
 
+  // Sync all UI surfaces that reflect completion state
+  updateGamifiedUI();
   renderGrid();
-  if (typeof renderRecentProjects === "function") renderRecentProjects();
-  if (typeof renderBookmarks === "function") renderBookmarks();
+  renderBookmarks();
+  renderRecentProjects();
 }
 
-// Global click delegation for the complete button
+// Global click handler for the "Complete" button
 document.addEventListener("click", (e) => {
   const completeBtn = e.target.closest(".complete-btn");
   if (!completeBtn) return;
 
   e.preventDefault();
   e.stopPropagation();
+
   const projectDay = completeBtn.dataset.id;
   const project = PROJECTS.find((item) => item.day === projectDay);
-  if (!project) return;
 
-  toggleCompleted(project);
+  if (project) {
+    toggleCompleted(project);
+  }
 });
+
+/**
+ * UI UPDATE HELPER
+ * Only updates if elements are found on the page (e.g., on tracker.html)
+ */
+function updateGamifiedUI() {
+  const totalXP = calculateTotalXP();
+  const currentLevel = calculateLevel(totalXP);
+
+  const elements = {
+    badge: document.getElementById("userLevelBadge"),
+    xpText: document.getElementById("userCurrentXP"),
+    bar: document.getElementById("userXPBarFill")
+  };
+
+  if (elements.badge) elements.badge.textContent = `Level ${currentLevel.level}: ${currentLevel.name}`;
+  if (elements.xpText) elements.xpText.textContent = `${totalXP} Total XP`;
+
+  // Update XP progress bar if present
+  if (elements.bar) {
+    const nextThreshold = LEVEL_THRESHOLDS.find(t => t.xp > totalXP);
+    if (nextThreshold) {
+      const prevXP = currentLevel.xp;
+      const rangeXP = nextThreshold.xp - prevXP;
+      const progressXP = totalXP - prevXP;
+      const pct = Math.min(100, Math.round((progressXP / rangeXP) * 100));
+      elements.bar.style.width = `${pct}%`;
+    } else {
+      // Max level — fill the bar
+      elements.bar.style.width = "100%";
+    }
+  }
+}
